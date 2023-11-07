@@ -29,7 +29,7 @@ func TestRssParse(t *testing.T) {
       </item>
       </channel>
       </rss>`)
-	parsed, err := parseRss(test_rss)
+	_, err := parseRss(test_rss)
 	if err != nil {
 		t.Fatalf("%s", err)
 	}
