@@ -9,25 +9,26 @@ import (
 var (
 	menuNextKey = key.NewBinding(key.WithKeys("l"))
 	menuPrevKey = key.NewBinding(key.WithKeys("h"))
+	quitKeys    = key.NewBinding(key.WithKeys("q"))
 )
 
-type menubarModel struct {
+type menuBar struct {
 	menuItems []string
 	selected  int
 }
 
-func initMenubarModel() menubarModel {
-	return menubarModel{
+func initMenubarModel() menuBar {
+	return menuBar{
 		menuItems: []string{"Home", "Subscriptions", "Episodes", "Search", "Player", "Config"},
 		selected:  0,
 	}
 }
 
-func (m menubarModel) Init() tea.Cmd {
+func (m menuBar) Init() tea.Cmd {
 	return nil
 }
 
-func (m menubarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m menuBar) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
@@ -47,7 +48,7 @@ func (m menubarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (m menubarModel) View() string {
+func (m menuBar) View() string {
 	s := ""
 	for i, item := range m.menuItems {
 		if i == m.selected {
@@ -62,13 +63,13 @@ func (m menubarModel) View() string {
 	return s
 }
 
-func (m *menubarModel) selectNext() {
+func (m *menuBar) selectNext() {
 	if m.selected < len(m.menuItems)-1 {
 		m.selected += 1
 	}
 }
 
-func (m *menubarModel) selectPrevious() {
+func (m *menuBar) selectPrevious() {
 	if m.selected > 0 {
 		m.selected -= 1
 	}
