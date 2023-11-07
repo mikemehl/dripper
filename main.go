@@ -12,6 +12,39 @@ import (
 
 type errMsg error
 
+type (
+	introModel struct {
+		spinner spinner.Model
+	}
+	homeModel          struct{}
+	subscriptionsModel struct{}
+	episodesModel      struct{}
+	playerModel        struct{}
+	configModel        struct{}
+)
+
+func initIntro() tea.Model {
+	s := spinner.New()
+	s.Spinner = spinner.Globe
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Align(lipgloss.Center, lipgloss.Center)
+	return model{spinner: s}
+}
+
+func (m introModel) Init() tea.Cmd {
+	return m.spinner.Tick
+}
+
+func (m introModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.spinner, cmd = m.spinner.Update(msg)
+	return m, cmd
+}
+
+func (m introModel) View() string {
+	str := fmt.Sprintf("\n\n   %s Loading forever... \n\n", m.spinner.View())
+	return str
+}
+
 type model struct {
 	spinner  spinner.Model
 	quitting bool
@@ -67,7 +100,7 @@ func (m model) View() string {
 }
 
 func main() {
-	p := tea.NewProgram(initialModel())
+	p := tea.NewProgram(initIntro())
 	if _, err := p.Run(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
