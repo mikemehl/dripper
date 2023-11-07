@@ -74,7 +74,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, quitKeys) {
 			m.quitting = true
 			return m, tea.Quit
-
 		}
 		return m, nil
 	case errMsg:
@@ -100,7 +99,7 @@ func (m model) View() string {
 }
 
 func main() {
-	p := tea.NewProgram(initIntro())
+	p := tea.NewProgram(initMenubarModel())
 	if _, err := p.Run(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

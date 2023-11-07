@@ -1,4 +1,4 @@
-module github.com/charmbracelet/bubbletea-app-template
+module github.com/mikemehl/dripper
 
 go 1.21
 
