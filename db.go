@@ -49,6 +49,36 @@ func loadFeeds() []gofeed.Feed {
 	return feeds
 }
 
+func newFeed(status chan<- error, url string) {
+	feed, err := newFeedFromURL(url)
+	if err != nil {
+		status <- err
+		return
+	}
+	db, err := kv.OpenWithDefaults(dbName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	err = addFromFeed(db, feed)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := db.Sync(); err != nil {
+		log.Fatal(err)
+	}
+	status <- nil
+}
+
+func newFeedFromURL(url string) (gofeed.Feed, error) {
+	fp := gofeed.NewParser()
+	feed, err := fp.ParseURL(url)
+	if err != nil {
+		return gofeed.Feed{}, err
+	}
+	return *feed, nil
+}
+
 func addFrromFeeds(feeds []gofeed.Feed) {
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
