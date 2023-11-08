@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mmcdole/gofeed"
 )
 
 var globalKeybindings = map[string]key.Binding{
@@ -23,74 +24,53 @@ var globalKeybindings = map[string]key.Binding{
 	"q":         key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 }
 
-type modelPage interface{}
-
-type introPage struct {
-	spinner spinner.Model
-}
-
-type homePage struct {
-	menu *menuBar
-}
-
-type subscriptionsPage struct {
-	menu *menuBar
-}
-
-type episodesPage struct {
-	menu *menuBar
-}
-
-type playerPage struct {
-	menu *menuBar
-}
-
-type configPage struct {
-	menu *menuBar
+type subData struct {
+	feeds    []gofeed.Feed
+	episodes []*gofeed.Item
 }
 
 type model struct {
-	intro         introPage
-	home          homePage
-	subscriptions subscriptionsPage
-	episodes      episodesPage
-	player        playerPage
-	config        configPage
-	menu          menuBar
-	currentPage   *modelPage
+	intro struct {
+		spinner spinner.Model
+		loader  chan subData
+	}
+	sub_data subData
 }
 
-func initModel() model {
+func initModel() tea.Model {
 	var m model
-	m.intro = introPage{}
-	m.home = homePage{}
-	m.subscriptions = subscriptionsPage{}
-	m.episodes = episodesPage{}
-	m.player = playerPage{}
-	m.config = configPage{}
-	m.menu = initMenubarModel()
-	m.currentPage = nil
-	return m
-}
-
-func initIntro() tea.Model {
 	s := spinner.New()
 	s.Spinner = spinner.Globe
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Align(lipgloss.Center, lipgloss.Center)
-	return introPage{spinner: s}
+	m.intro.spinner = s
+	m.intro.loader = make(chan subData)
+	return m
 }
 
-func (m introPage) Init() tea.Cmd {
-	return m.spinner.Tick
+func (m model) Init() tea.Cmd {
+	go loadSubData(m.intro.loader)
+	return m.intro.spinner.Tick
 }
 
-func (m introPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	select {
+	case <-m.intro.loader:
+		return m, tea.Quit
+	default:
+	}
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "ctrl+c":
+			return m, tea.Quit
+		}
+	}
 	var cmd tea.Cmd
-	m.spinner, cmd = m.spinner.Update(msg)
+	m.intro.spinner, cmd = m.intro.spinner.Update(msg)
 	return m, cmd
 }
 
-func (m introPage) View() string {
-	str := fmt.Sprintf("\n\n   %s Loading forever... \n\n", m.spinner.View())
+func (m model) View() string {
+	str := fmt.Sprintf("\n\n   %s Loading subscriptions... \n\n", m.intro.spinner.View())
 	return str
 }

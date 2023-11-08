@@ -10,7 +10,7 @@ import (
 type errMsg error
 
 func main() {
-	p := tea.NewProgram(initMenubarModel())
+	p := tea.NewProgram(initModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
