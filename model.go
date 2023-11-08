@@ -29,21 +29,39 @@ type subData struct {
 	episodes []*gofeed.Item
 }
 
+type modelState int
+
+const (
+	intro modelState = iota
+	subsPage
+	episodespage
+	searchpage
+	playerPage
+	configPage
+)
+
 type model struct {
 	intro struct {
 		spinner spinner.Model
 		loader  chan subData
 	}
-	sub_data subData
+	topMenu    menuBar
+	modelState modelState
+	sub_data   subData
 }
 
-func initModel() tea.Model {
-	var m model
+func (m *model) initIntro() {
 	s := spinner.New()
 	s.Spinner = spinner.Globe
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Align(lipgloss.Center, lipgloss.Center)
 	m.intro.spinner = s
 	m.intro.loader = make(chan subData)
+}
+
+func initModel() tea.Model {
+	var m model
+	m.modelState = intro
+	m.initIntro()
 	return m
 }
 
@@ -52,7 +70,7 @@ func (m model) Init() tea.Cmd {
 	return m.intro.spinner.Tick
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) UpdateIntro(msg tea.Msg) (tea.Model, tea.Cmd) {
 	select {
 	case <-m.intro.loader:
 		return m, tea.Quit
@@ -70,7 +88,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) View() string {
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch m.modelState {
+	case intro:
+		return m.UpdateIntro(msg)
+	}
+	return m, nil
+}
+
+func (m model) ViewIntro() string {
 	str := fmt.Sprintf("\n\n   %s Loading subscriptions... \n\n", m.intro.spinner.View())
 	return str
+}
+
+func (m model) View() string {
+	switch m.modelState {
+	case intro:
+		return m.ViewIntro()
+	}
+	return ""
 }
