@@ -10,20 +10,6 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-var globalKeybindings = map[string]key.Binding{
-	"l":         key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "move right")),
-	"h":         key.NewBinding(key.WithKeys("h"), key.WithHelp("h", "move left")),
-	"j":         key.NewBinding(key.WithKeys("j"), key.WithHelp("j", "move down")),
-	"k":         key.NewBinding(key.WithKeys("k"), key.WithHelp("k", "move up")),
-	"Tab":       key.NewBinding(key.WithKeys("Tab"), key.WithHelp("Tab", "next page")),
-	"Shift-Tab": key.NewBinding(key.WithKeys("Shift-Tab"), key.WithHelp("Shift-Tab", "previous page")),
-	"Enter":     key.NewBinding(key.WithKeys("Enter"), key.WithHelp("Enter", "select")),
-	"o":         key.NewBinding(key.WithKeys("o"), key.WithHelp("o", "open")),
-	"p":         key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "play/pause")),
-	"/":         key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "search")),
-	"q":         key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
-}
-
 type subData struct {
 	feeds    []gofeed.Feed
 	episodes []*gofeed.Item
@@ -38,6 +24,7 @@ const (
 	searchpage
 	playerPage
 	configPage
+	addingSub
 )
 
 type model struct {
@@ -61,6 +48,7 @@ func (m *model) initIntro() {
 func initModel() tea.Model {
 	var m model
 	m.modelState = intro
+	m.topMenu = initMenubarModel()
 	m.initIntro()
 	return m
 }
@@ -73,25 +61,42 @@ func (m model) Init() tea.Cmd {
 func (m model) UpdateIntro(msg tea.Msg) (tea.Model, tea.Cmd) {
 	select {
 	case <-m.intro.loader:
-		return m, tea.Quit
+		m.modelState = subsPage
+		return m, nil
 	default:
-	}
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
-			return m, tea.Quit
-		}
 	}
 	var cmd tea.Cmd
 	m.intro.spinner, cmd = m.intro.spinner.Update(msg)
 	return m, cmd
 }
 
+func (m model) UpdateSubs(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, keyBindings.menuNext):
+			m.topMenu.selectNext()
+		case key.Matches(msg, keyBindings.menuPrev):
+			m.topMenu.selectPrevious()
+		case key.Matches(msg, keyBindings.addSub):
+			m.modelState = addingSub
+		}
+	}
+	return m, nil
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, keyBindings.quit) {
+			return m, tea.Quit
+		}
+	}
 	switch m.modelState {
 	case intro:
 		return m.UpdateIntro(msg)
+	case subsPage:
+		return m.UpdateSubs(msg)
 	}
 	return m, nil
 }
@@ -105,6 +110,8 @@ func (m model) View() string {
 	switch m.modelState {
 	case intro:
 		return m.ViewIntro()
+	case subsPage:
+		return m.topMenu.View()
 	}
 	return ""
 }

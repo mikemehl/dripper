@@ -1,26 +1,35 @@
 package main
 
 import (
-	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	menuNextKey = key.NewBinding(key.WithKeys("l"))
-	menuPrevKey = key.NewBinding(key.WithKeys("h"))
-	quitKeys    = key.NewBinding(key.WithKeys("q"))
-)
+type menuBarStyles struct {
+	selected   lipgloss.Style
+	unselected lipgloss.Style
+	box        lipgloss.Style
+	separator  string
+}
 
 type menuBar struct {
 	menuItems []string
 	selected  int
+	styles    menuBarStyles
 }
 
 func initMenubarModel() menuBar {
+	border := lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.RoundedBorder(), true, false, false, false).Padding(1).Margin(1)
+	itemBase := lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true)
 	return menuBar{
-		menuItems: []string{"Home", "Subscriptions", "Episodes", "Search", "Player", "Config"},
+		menuItems: []string{"Subscriptions", "Episodes", "Search", "Player", "Config"},
 		selected:  0,
+		styles: menuBarStyles{
+			selected:   itemBase,
+			unselected: lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Inherit(itemBase),
+			box:        border,
+			separator:  lipgloss.NewStyle().Foreground(lipgloss.Color("177")).Padding(0, 1).Render("|"),
+		},
 	}
 }
 
@@ -28,49 +37,33 @@ func (m menuBar) Init() tea.Cmd {
 	return nil
 }
 
-func (m menuBar) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-
-	case tea.KeyMsg:
-		if key.Matches(msg, quitKeys) {
-			return m, tea.Quit
-		} else if key.Matches(msg, menuNextKey) {
-			m.selectNext()
-		} else if key.Matches(msg, menuPrevKey) {
-			m.selectPrevious()
-		}
-		return m, nil
-	case errMsg:
-		return m, nil
-
-	default:
-		return m, nil
-	}
+func (m *menuBar) Update(msg tea.Msg) tea.Cmd {
+	return nil
 }
 
 func (m menuBar) View() string {
 	s := ""
 	for i, item := range m.menuItems {
 		if i == m.selected {
-			s += lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Render(item)
+			s += m.styles.selected.Render(item)
 		} else {
-			s += lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(item)
+			s += m.styles.unselected.Render(item)
 		}
 		if i < len(m.menuItems)-1 {
-			s += lipgloss.NewStyle().Foreground(lipgloss.Color("177")).Render("|")
+			s += m.styles.separator
 		}
 	}
-	return s
+	return m.styles.box.Render(s)
 }
 
 func (m *menuBar) selectNext() {
-	if m.selected < len(m.menuItems)-1 {
-		m.selected += 1
-	}
+	m.selected = (m.selected + 1) % len(m.menuItems)
 }
 
 func (m *menuBar) selectPrevious() {
-	if m.selected > 0 {
-		m.selected -= 1
+	if m.selected == 0 {
+		m.selected = len(m.menuItems) - 1
+	} else {
+		m.selected = (m.selected - 1) % len(m.menuItems)
 	}
 }
