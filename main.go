@@ -2,21 +2,22 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
 )
 
 type errMsg error
 
 func main() {
-	f, err := tea.LogToFile("debug.log", "debug")
+	f, err := os.OpenFile("debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error opening log file")
 	}
-	defer f.Close()
-	log.Println("Starting app========================")
+	log.SetOutput(f)
+	log.SetReportCaller(true)
+	log.Info("Starting app========================")
 	p := tea.NewProgram(initModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Println(err)

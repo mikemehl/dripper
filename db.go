@@ -3,7 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"log"
+
+	"github.com/charmbracelet/log"
 
 	"github.com/charmbracelet/charm/kv"
 	"github.com/gosimple/slug"
@@ -13,28 +14,29 @@ import (
 const dbName = "dripper-data"
 
 func loadSubData(out chan<- subData) {
-	log.Println("Loading subscription data")
+	log.Info("Loading subscription data")
 	var data subData
 	data.feeds = loadFeeds()
 	for _, feed := range data.feeds {
 		data.episodes = append(data.episodes, feed.Items...)
 	}
-	log.Println("Sending subscription data to model")
+	log.Info("Sending subscription data to model")
 	out <- data
 }
 
 func loadFeeds() []gofeed.Feed {
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
-		log.Println("Error opening db: ", err)
+		log.Info("Error opening db: ", err)
 		log.Fatal(err)
 	}
 	defer db.Close()
 
 	keys, err := db.Keys()
 	if err != nil {
-		log.Println("Error getting keys: ", err)
-		log.Fatal(err)
+		log.Fatal("Error getting keys: ", err)
+	} else {
+		log.Info("Got keys: ", keys)
 	}
 
 	var feeds []gofeed.Feed
@@ -50,32 +52,38 @@ func loadFeeds() []gofeed.Feed {
 		feeds = append(feeds, feed)
 	}
 
+	log.Info("Loaded feeds")
 	return feeds
 }
 
 func newFeed(status chan<- error, url string) {
-	log.Println("Adding new feed: ", url)
+	log.Info("Adding new feed: ", url)
 	feed, err := newFeedFromURL(url)
 	if err != nil {
-		log.Println("Error adding new feed: ", err)
+		log.Error("Error adding new feed: ", err)
 		status <- err
 		return
 	}
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
-		log.Println("Error opening db: ", err)
-		log.Fatal(err)
+		log.Error("Error opening db: ", err)
+		status <- err
+		return
 	}
 	defer db.Close()
 	err = addFromFeed(db, feed)
 	if err != nil {
-		log.Println("Error adding feed to db: ", err)
-		log.Fatal(err)
+		log.Error("Error adding feed to db: ", err)
+		status <- err
+		return
 	}
 	if err := db.Sync(); err != nil {
-		log.Println("Error syncing db: ", err)
-		log.Fatal(err)
+		log.Info("Error syncing db: ", err)
+		status <- err
+		return
 	}
+
+	log.Info("Added new feed: ", feed.Title)
 	status <- nil
 }
 
@@ -116,6 +124,8 @@ func addFromFeed(db *kv.KV, feed gofeed.Feed) error {
 	if err != nil {
 		return err
 	}
+	log.Info("Adding feed: ", feed.Title)
+	log.Info("Feed has key: ", key)
 	db.Set(key, val)
 	return nil
 }
