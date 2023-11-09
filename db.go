@@ -13,23 +13,27 @@ import (
 const dbName = "dripper-data"
 
 func loadSubData(out chan<- subData) {
+	log.Println("Loading subscription data")
 	var data subData
 	data.feeds = loadFeeds()
 	for _, feed := range data.feeds {
 		data.episodes = append(data.episodes, feed.Items...)
 	}
+	log.Println("Sending subscription data to model")
 	out <- data
 }
 
 func loadFeeds() []gofeed.Feed {
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
+		log.Println("Error opening db: ", err)
 		log.Fatal(err)
 	}
 	defer db.Close()
 
 	keys, err := db.Keys()
 	if err != nil {
+		log.Println("Error getting keys: ", err)
 		log.Fatal(err)
 	}
 
@@ -50,21 +54,26 @@ func loadFeeds() []gofeed.Feed {
 }
 
 func newFeed(status chan<- error, url string) {
+	log.Println("Adding new feed: ", url)
 	feed, err := newFeedFromURL(url)
 	if err != nil {
+		log.Println("Error adding new feed: ", err)
 		status <- err
 		return
 	}
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
+		log.Println("Error opening db: ", err)
 		log.Fatal(err)
 	}
 	defer db.Close()
 	err = addFromFeed(db, feed)
 	if err != nil {
+		log.Println("Error adding feed to db: ", err)
 		log.Fatal(err)
 	}
 	if err := db.Sync(); err != nil {
+		log.Println("Error syncing db: ", err)
 		log.Fatal(err)
 	}
 	status <- nil
@@ -100,12 +109,9 @@ func addFrromFeeds(feeds []gofeed.Feed) {
 
 func addFromFeed(db *kv.KV, feed gofeed.Feed) error {
 	key := []byte(slug.Make(feed.Title))
-	if val, err := db.Get(key); err != nil {
-		return err
-	} else if val != nil {
+	if val, _ := db.Get(key); val != nil {
 		return nil // already exists
 	}
-
 	val, err := encodeFeed(feed)
 	if err != nil {
 		return err
