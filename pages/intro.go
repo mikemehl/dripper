@@ -13,14 +13,12 @@ import (
 type IntroPage struct {
 	spinner           spinner.Model
 	feedLoadInitiated bool
-	feeds             *db.FeedList
 }
 
 func InitIntroPage() IntroPage {
 	m := IntroPage{
 		spinner:           spinner.New(),
 		feedLoadInitiated: false,
-		feeds:             nil,
 	}
 	m.spinner.Spinner = spinner.Points
 	return m
@@ -38,7 +36,7 @@ func (m IntroPage) Update(msg tea.Msg) (IntroPage, tea.Cmd) {
 			return m, tea.Quit
 		default:
 		}
-	case db.FeedList:
+	case []db.Feed:
 		log.Warn("Feed list received by intro page")
 	default:
 	}

@@ -14,9 +14,28 @@ import (
 const dbName = "dripper-data"
 
 type (
-	FeedList    []gofeed.Feed
-	EpisodeList []*gofeed.Item
+	Feed    gofeed.Feed
+	Episode gofeed.Item
+	SubData struct {
+		Feeds    []Feed
+		Episodes []*Episode
+	}
 )
+
+func (f Feed) FilterValue() string {
+	return f.Title
+}
+
+func (e Episode) FilterValue() string {
+	return e.Title
+}
+
+func (s *SubData) LoadFeed(feed gofeed.Feed) {
+	s.Feeds = append(s.Feeds, Feed(feed))
+	for _, it := range feed.Items {
+		s.Episodes = append(s.Episodes, (*Episode)(it))
+	}
+}
 
 func LoadFeeds() tea.Msg {
 	db, err := kv.OpenWithDefaults(dbName)
@@ -32,7 +51,7 @@ func LoadFeeds() tea.Msg {
 		log.Info("Got keys: ", "keys", keys)
 	}
 
-	var feeds []gofeed.Feed
+	var subData SubData
 	for _, key := range keys {
 		raw_feed, err := db.Get(key)
 		if err != nil {
@@ -44,11 +63,11 @@ func LoadFeeds() tea.Msg {
 		}
 		log.Debug("Loaded feed: ", "title", feed.Title)
 		// log.Debug("Feed has items:", "number of items", len(feed.Items), "items", feed.Items)
-		feeds = append(feeds, feed)
+		subData.LoadFeed(feed)
 	}
 
 	log.Info("Loaded feeds")
-	return feeds
+	return SubData(subData)
 }
 
 func NewFeed(url string) error {
