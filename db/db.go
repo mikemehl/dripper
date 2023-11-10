@@ -1,30 +1,24 @@
-package main
+package db
 
 import (
 	"bytes"
 	"encoding/gob"
 
-	"github.com/charmbracelet/log"
-
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm/kv"
+	"github.com/charmbracelet/log"
 	"github.com/gosimple/slug"
 	"github.com/mmcdole/gofeed"
 )
 
 const dbName = "dripper-data"
 
-func loadSubData(out chan<- subData) {
-	log.Info("Loading subscription data")
-	var data subData
-	data.feeds = loadFeeds()
-	for _, feed := range data.feeds {
-		data.episodes = append(data.episodes, feed.Items...)
-	}
-	log.Info("Sending subscription data to model")
-	out <- data
-}
+type (
+	FeedList    []gofeed.Feed
+	EpisodeList []*gofeed.Item
+)
 
-func loadFeeds() []gofeed.Feed {
+func LoadFeeds() tea.Msg {
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
 		log.Fatal("Error opening db: ", "error", err)
@@ -49,7 +43,7 @@ func loadFeeds() []gofeed.Feed {
 			log.Fatal("Error decoding feed:", "error", err)
 		}
 		log.Debug("Loaded feed: ", "title", feed.Title)
-		log.Debug("Feed has items:", "number of items", len(feed.Items), "items", feed.Items)
+		// log.Debug("Feed has items:", "number of items", len(feed.Items), "items", feed.Items)
 		feeds = append(feeds, feed)
 	}
 
@@ -57,35 +51,31 @@ func loadFeeds() []gofeed.Feed {
 	return feeds
 }
 
-func newFeed(status chan<- error, url string) {
+func NewFeed(url string) error {
 	log.Info("Adding new feed: ", "url", url)
 	feed, err := newFeedFromURL(url)
 	if err != nil {
 		log.Error("Error adding new feed: ", "error", err)
-		status <- err
-		return
+		return err
 	}
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
 		log.Error("Error opening db: ", "error", err)
-		status <- err
-		return
+		return err
 	}
 	defer db.Close()
 	err = addFromFeed(db, feed)
 	if err != nil {
 		log.Error("Error adding feed to db: ", "error", err)
-		status <- err
-		return
+		return err
 	}
 	if err := db.Sync(); err != nil {
 		log.Info("Error syncing db: ", "error", err)
-		status <- err
-		return
+		return err
 	}
 
 	log.Info("Added new feed: ", "title", feed.Title)
-	status <- nil
+	return nil
 }
 
 func newFeedFromURL(url string) (gofeed.Feed, error) {

@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
+	pages "github.com/mikemehl/dripper/pages"
 )
 
 type errMsg error
@@ -15,10 +16,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("error opening log file")
 	}
+	log.SetLevel(log.DebugLevel)
 	log.SetOutput(f)
 	log.SetReportCaller(true)
 	log.Info("Starting app========================")
-	p := tea.NewProgram(initModel(), tea.WithAltScreen())
+	p := tea.NewProgram(pages.InitMainModel())
 	if _, err := p.Run(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
