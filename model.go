@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/charmbracelet/log"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -37,6 +39,7 @@ type model struct {
 	}
 	topMenu    menuBar
 	addSubForm textinput.Model
+	subList    table.Model
 	modelState modelState
 	sub_data   subData
 }
@@ -54,6 +57,7 @@ func initModel() tea.Model {
 	m.modelState = intro
 	m.topMenu = initMenubarModel()
 	m.addSubForm = textinput.New()
+	m.subList = table.New(table.WithColumns([]table.Column{{Width: 120}}), table.WithStyles(table.DefaultStyles()), table.WithFocused(false))
 	m.initIntro()
 	return m
 }
@@ -65,9 +69,11 @@ func (m model) Init() tea.Cmd {
 
 func (m model) UpdateIntro(msg tea.Msg) (tea.Model, tea.Cmd) {
 	select {
-	case <-m.loader:
+	case subs := <-m.loader:
+		log.Info("Got subs", "subs", subs)
 		m.modelState = subsPage
-		return m, nil
+		m.sub_data = subs
+		return m.UpdateSubs(msg)
 	default:
 	}
 	var cmd tea.Cmd
@@ -76,6 +82,7 @@ func (m model) UpdateIntro(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) UpdateSubs(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -87,9 +94,19 @@ func (m model) UpdateSubs(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.modelState = addingSub
 			m.addSubForm.Focus()
 			return m, textinput.Blink
+		case key.Matches(msg, keyBindings.down):
+			m.subList.MoveDown(1)
+		case key.Matches(msg, keyBindings.up):
+			m.subList.MoveUp(1)
 		}
 	}
-	return m, nil
+	var titles []table.Row
+	for _, feed := range m.sub_data.feeds {
+		titles = append(titles, table.Row{feed.Title})
+	}
+	m.subList.SetRows(titles)
+	m.subList, cmd = m.subList.Update(msg)
+	return m, cmd
 }
 
 func (m model) UpdateAddingSub(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -134,6 +151,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.UpdateSubs(msg)
 	case addingSub:
 		return m.UpdateAddingSub(msg)
+	default:
+
 	}
 	return m, nil
 }
@@ -147,14 +166,23 @@ func (m model) ViewAddingSub() string {
 	return fmt.Sprintf("Enter feed URL:\n\n%s", m.addSubForm.View())
 }
 
+func (m model) ViewSubs() string {
+	log.Info("ViewSubs")
+	s := fmt.Sprintf("%s%s\n", m.topMenu.View(), m.subList.View())
+	log.Info("ViewSubs", "s", s)
+	return s
+}
+
 func (m model) View() string {
 	switch m.modelState {
 	case intro:
 		return m.ViewIntro()
 	case subsPage:
-		return m.topMenu.View()
+		return m.ViewSubs()
 	case addingSub:
 		return m.ViewAddingSub()
+	default:
+		return m.topMenu.View()
 	}
 	return ""
 }

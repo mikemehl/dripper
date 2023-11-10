@@ -27,28 +27,29 @@ func loadSubData(out chan<- subData) {
 func loadFeeds() []gofeed.Feed {
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
-		log.Info("Error opening db: ", err)
-		log.Fatal(err)
+		log.Fatal("Error opening db: ", "error", err)
 	}
 	defer db.Close()
 
 	keys, err := db.Keys()
 	if err != nil {
-		log.Fatal("Error getting keys: ", err)
+		log.Fatal("Error getting keys: ", "error", err)
 	} else {
-		log.Info("Got keys: ", keys)
+		log.Info("Got keys: ", "keys", keys)
 	}
 
 	var feeds []gofeed.Feed
 	for _, key := range keys {
 		raw_feed, err := db.Get(key)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Error getting key:", "key", key, "error", err)
 		}
 		feed, err := decodeFeed(raw_feed)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Error decoding feed:", "error", err)
 		}
+		log.Debug("Loaded feed: ", "title", feed.Title)
+		log.Debug("Feed has items:", "number of items", len(feed.Items), "items", feed.Items)
 		feeds = append(feeds, feed)
 	}
 
@@ -57,33 +58,33 @@ func loadFeeds() []gofeed.Feed {
 }
 
 func newFeed(status chan<- error, url string) {
-	log.Info("Adding new feed: ", url)
+	log.Info("Adding new feed: ", "url", url)
 	feed, err := newFeedFromURL(url)
 	if err != nil {
-		log.Error("Error adding new feed: ", err)
+		log.Error("Error adding new feed: ", "error", err)
 		status <- err
 		return
 	}
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
-		log.Error("Error opening db: ", err)
+		log.Error("Error opening db: ", "error", err)
 		status <- err
 		return
 	}
 	defer db.Close()
 	err = addFromFeed(db, feed)
 	if err != nil {
-		log.Error("Error adding feed to db: ", err)
+		log.Error("Error adding feed to db: ", "error", err)
 		status <- err
 		return
 	}
 	if err := db.Sync(); err != nil {
-		log.Info("Error syncing db: ", err)
+		log.Info("Error syncing db: ", "error", err)
 		status <- err
 		return
 	}
 
-	log.Info("Added new feed: ", feed.Title)
+	log.Info("Added new feed: ", "title", feed.Title)
 	status <- nil
 }
 
@@ -124,8 +125,8 @@ func addFromFeed(db *kv.KV, feed gofeed.Feed) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Adding feed: ", feed.Title)
-	log.Info("Feed has key: ", key)
+	log.Info("Adding feed: ", "title", feed.Title)
+	log.Info("Feed has key: ", "key", key)
 	db.Set(key, val)
 	return nil
 }
