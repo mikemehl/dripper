@@ -70,31 +70,31 @@ func LoadFeeds() tea.Msg {
 	return SubData(subData)
 }
 
-func NewFeed(url string) error {
+func NewFeed(url string) (gofeed.Feed, error) {
 	log.Info("Adding new feed: ", "url", url)
 	feed, err := newFeedFromURL(url)
 	if err != nil {
 		log.Error("Error adding new feed: ", "error", err)
-		return err
+		return gofeed.Feed{}, err
 	}
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
 		log.Error("Error opening db: ", "error", err)
-		return err
+		return gofeed.Feed{}, err
 	}
 	defer db.Close()
 	err = addFromFeed(db, feed)
 	if err != nil {
 		log.Error("Error adding feed to db: ", "error", err)
-		return err
+		return gofeed.Feed{}, err
 	}
 	if err := db.Sync(); err != nil {
 		log.Info("Error syncing db: ", "error", err)
-		return err
+		return gofeed.Feed{}, err
 	}
 
 	log.Info("Added new feed: ", "title", feed.Title)
-	return nil
+	return feed, nil
 }
 
 func newFeedFromURL(url string) (gofeed.Feed, error) {

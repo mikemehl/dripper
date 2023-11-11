@@ -52,7 +52,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.intro, cmd = m.intro.Update(msg)
 	case StateSubsList:
 		log.Debug("StateSubsList")
-		m.menu, cmd = m.menu.Update(msg)
+		m.menu, _ = m.menu.Update(msg)
 		m.subs, cmd = m.subs.Update(msg)
 	}
 	log.Info("Main Model Update", "state", m.state)
