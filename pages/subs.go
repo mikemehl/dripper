@@ -26,12 +26,12 @@ type SubsPage struct {
 	input textinput.Model
 }
 
-type itemDelegate struct{}
+type subItemDelegate struct{}
 
-func (d itemDelegate) Height() int                             { return 1 }
-func (d itemDelegate) Spacing() int                            { return 1 }
-func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d itemDelegate) Render(w io.Writer, m list.Model, idx int, item list.Item) {
+func (d subItemDelegate) Height() int                             { return 1 }
+func (d subItemDelegate) Spacing() int                            { return 1 }
+func (d subItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d subItemDelegate) Render(w io.Writer, m list.Model, idx int, item list.Item) {
 	style := lipgloss.NewStyle().Inline(true).Faint(true)
 	if idx == m.Cursor() {
 		style = style.Faint(false).Foreground(lipgloss.Color("#F97137"))
@@ -39,8 +39,8 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, idx int, item list.Item)
 	fmt.Fprintf(w, "%s\n", style.Render(item.(db.Feed).Title))
 }
 
-func initList() list.Model {
-	l := list.New([]list.Item{}, itemDelegate{}, ListWidth, ListHeight)
+func initList(delegate list.ItemDelegate) list.Model {
+	l := list.New([]list.Item{}, delegate, ListWidth, ListHeight)
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(true)
 	l.SetFilteringEnabled(false)
@@ -61,7 +61,7 @@ func initInput() textinput.Model {
 func InitSubsPage(subs *db.SubData) SubsPage {
 	var m SubsPage
 	m.subs = subs
-	m.list = initList()
+	m.list = initList(subItemDelegate{})
 	m.input = initInput()
 	return m
 }
@@ -111,13 +111,15 @@ func (m SubsPage) Update(msg tea.Msg) (SubsPage, tea.Cmd) {
 			return m, tea.Quit
 		case key.Matches(msg, KeyBindings.AddSub):
 			m.input.Focus()
-
+		case key.Matches(msg, KeyBindings.Confirm):
+			feed := m.list.SelectedItem().(db.Feed)
+			return m, func() tea.Msg { return &feed }
 		default:
 		}
 	case *db.SubData:
 		log.Debug("SubData recevied by SubsPage")
 		m.subs = msg
-		newItems := newListItems(msg)
+		newItems := newSubListItems(msg)
 		m.list.SetItems(newItems)
 	default:
 	}
@@ -133,7 +135,7 @@ func (m SubsPage) View() string {
 	return view
 }
 
-func newListItems(data *db.SubData) []list.Item {
+func newSubListItems(data *db.SubData) []list.Item {
 	log.Info("NewItems() called")
 	var items []list.Item
 	for _, feed := range (data).Feeds {

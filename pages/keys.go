@@ -3,6 +3,7 @@ package pages
 import "github.com/charmbracelet/bubbles/key"
 
 var KeyBindings = struct {
+	Back     key.Binding
 	Quit     key.Binding
 	MenuNext key.Binding
 	MenuPrev key.Binding
@@ -13,7 +14,8 @@ var KeyBindings = struct {
 	Left     key.Binding
 	Right    key.Binding
 }{
-	Quit:     key.NewBinding(key.WithKeys("q", "esc", "ctrl+c")),
+	Back:     key.NewBinding(key.WithKeys("esc")),
+	Quit:     key.NewBinding(key.WithKeys("q", "ctrl+c")),
 	MenuNext: key.NewBinding(key.WithKeys("tab")),
 	MenuPrev: key.NewBinding(key.WithKeys("shift+tab")),
 	AddSub:   key.NewBinding(key.WithKeys("a")),

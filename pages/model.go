@@ -12,14 +12,20 @@ type ModelState int
 const (
 	StateIntro ModelState = iota
 	StateSubsList
+	StateSubEpsList
 )
 
+type StateChangeMsg struct {
+	newState ModelState
+}
+
 type Model struct {
-	state ModelState
-	intro IntroPage
-	subs  SubsPage
-	menu  MenuBar
-	feeds *db.SubData
+	state  ModelState
+	intro  IntroPage
+	subs   SubsPage
+	subEps SubEpsPage
+	menu   MenuBar
+	feeds  *db.SubData
 }
 
 func InitMainModel() tea.Model {
@@ -28,6 +34,7 @@ func InitMainModel() tea.Model {
 		intro: InitIntroPage(),
 	}
 	m.subs = InitSubsPage(m.feeds)
+	m.subEps = InitSubepsPage()
 	m.menu = InitMenuBar([]string{"Subscriptions", "Episodes"})
 	return m
 }
@@ -52,8 +59,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.intro, cmd = m.intro.Update(msg)
 	case StateSubsList:
 		log.Debug("StateSubsList")
-		m.menu, _ = m.menu.Update(msg)
-		m.subs, cmd = m.subs.Update(msg)
+		switch msg.(type) {
+		case *db.Feed:
+			m.state = StateSubEpsList
+			cmd = func() tea.Msg { return msg.(*db.Feed) }
+		default:
+			m.menu, _ = m.menu.Update(msg)
+			m.subs, cmd = m.subs.Update(msg)
+		}
+	case StateSubEpsList:
+		switch msg.(type) {
+		case StateChangeMsg:
+			m.state = msg.(StateChangeMsg).newState
+		}
+		m.subEps, cmd = m.subEps.Update(msg)
 	}
 	log.Info("Main Model Update", "state", m.state)
 	return m, cmd
@@ -65,6 +84,8 @@ func (m Model) View() string {
 		return m.intro.View()
 	case StateSubsList:
 		return m.menu.View() + m.subs.View()
+	case StateSubEpsList:
+		return m.menu.View() + m.subEps.View()
 	default:
 	}
 	return lipgloss.NewStyle().Blink(true).Render("DANGER! DANGER! NO VIEW IMPLEMENTED FOR STATE: " + string(m.state))
