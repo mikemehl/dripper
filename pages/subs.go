@@ -13,13 +13,6 @@ import (
 	"github.com/mikemehl/dripper/db"
 )
 
-const (
-	ListWidth   = 40
-	ListHeight  = 20
-	InputWidth  = (40 / 4)
-	InputHeight = (20 / 4)
-)
-
 type SubsPage struct {
 	subs  *db.SubData
 	list  list.Model
@@ -33,17 +26,18 @@ func (d subItemDelegate) Spacing() int                            { return 1 }
 func (d subItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d subItemDelegate) Render(w io.Writer, m list.Model, idx int, item list.Item) {
 	style := lipgloss.NewStyle().Inline(true).Faint(true)
-	if idx == m.Cursor() {
+	if idx == m.Index() {
 		style = style.Faint(false).Foreground(lipgloss.Color("#F97137"))
 	}
 	fmt.Fprintf(w, "%s\n", style.Render(item.(db.Feed).Title))
 }
 
 func initList(delegate list.ItemDelegate) list.Model {
-	l := list.New([]list.Item{}, delegate, ListWidth, ListHeight)
+	l := list.New([]list.Item{}, delegate, CurrWidth, CurrHeight)
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(true)
 	l.SetFilteringEnabled(false)
+	l.Styles.PaginationStyle.MaxHeight(1)
 	l.KeyMap.Quit.SetKeys(KeyBindings.Quit.Keys()...)
 	l.KeyMap.CursorUp.SetKeys(KeyBindings.Up.Keys()...)
 	l.KeyMap.CursorDown.SetKeys(KeyBindings.Down.Keys()...)
@@ -130,7 +124,7 @@ func (m SubsPage) Update(msg tea.Msg) (SubsPage, tea.Cmd) {
 func (m SubsPage) View() string {
 	view := m.list.View()
 	if m.input.Focused() {
-		view = lipgloss.Place(InputWidth, InputHeight, lipgloss.Center, lipgloss.Left, m.input.View(), lipgloss.WithWhitespaceChars(view))
+		view = lipgloss.Place(CurrWidth/2, CurrHeight/2, lipgloss.Center, lipgloss.Left, m.input.View(), lipgloss.WithWhitespaceChars(view))
 	}
 	return view
 }

@@ -15,6 +15,11 @@ const (
 	StateSubEpsList
 )
 
+var (
+	CurrWidth  = 40
+	CurrHeight = 20
+)
+
 type StateChangeMsg struct {
 	newState ModelState
 }
@@ -45,6 +50,11 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd = nil
+	switch msg.(type) {
+	case tea.WindowSizeMsg:
+		CurrWidth = msg.(tea.WindowSizeMsg).Width
+		CurrHeight = msg.(tea.WindowSizeMsg).Height
+	}
 	switch m.state {
 	case StateIntro:
 		switch msg.(type) {
