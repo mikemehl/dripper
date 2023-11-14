@@ -37,7 +37,6 @@ func InitSubepsPage() SubEpsPage {
 	var m SubEpsPage
 	m.subTitle = ""
 	m.list = initList(epItemDelegate{})
-	m.details.SetContent("")
 	m.details.Width = m.list.Width()
 	m.details.Height = m.list.Height()
 	m.list.SetShowTitle(true)
@@ -50,8 +49,8 @@ func (m SubEpsPage) Init() tea.Cmd {
 }
 
 func (m SubEpsPage) SetDetails(selected db.Episode) {
-	content := selected.Title + "\n\n" + selected.Description
-	content = lipgloss.NewStyle().Width(m.list.Width()).Height(m.list.Height()).Render(content)
+	content := selected.Title + selected.Description
+	log.Info(content)
 	m.details.SetContent(content)
 }
 
@@ -72,7 +71,8 @@ func (m SubEpsPage) Update(msg tea.Msg) (SubEpsPage, tea.Cmd) {
 			if !m.showDetails {
 				m.showDetails = true
 				m.SetDetails(m.list.SelectedItem().(db.Episode))
-				return m, nil
+				m.details, cmd = m.details.Update(msg)
+				return m, cmd
 			}
 		default:
 		}
@@ -93,7 +93,11 @@ func (m SubEpsPage) Update(msg tea.Msg) (SubEpsPage, tea.Cmd) {
 }
 
 func (m SubEpsPage) View() string {
-	return lipgloss.Place(CurrWidth/2, CurrHeight/2, lipgloss.Center, lipgloss.Top, m.details.View(), lipgloss.WithWhitespaceChars(m.list.View()))
+	if m.showDetails {
+		log.Info(m.details.View())
+		return m.details.View()
+	}
+	return m.list.View()
 }
 
 func newSubEpsListItems(data *db.Feed) []list.Item {
