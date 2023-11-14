@@ -39,6 +39,7 @@ func InitSubepsPage() SubEpsPage {
 	m.list = initList(epItemDelegate{})
 	m.details.Width = m.list.Width()
 	m.details.Height = m.list.Height()
+	m.details.Style = m.details.Style.Align(lipgloss.Left).Border(lipgloss.RoundedBorder())
 	m.list.SetShowTitle(true)
 	m.showDetails = false
 	return m
@@ -48,9 +49,8 @@ func (m SubEpsPage) Init() tea.Cmd {
 	return nil
 }
 
-func (m SubEpsPage) SetDetails(selected db.Episode) {
-	content := selected.Title + selected.Description
-	log.Info(content)
+func (m *SubEpsPage) SetDetails(selected db.Episode) {
+	content := lipgloss.NewStyle().MaxWidth(20).MaxHeight(40).Align(lipgloss.Left).Render(selected.Title + selected.Description)
 	m.details.SetContent(content)
 }
 
