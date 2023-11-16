@@ -13,6 +13,8 @@ import (
 	"github.com/mikemehl/dripper/db"
 )
 
+var detailsStyle = lipgloss.NewStyle().Align(lipgloss.Left).Border(lipgloss.NormalBorder(), false, false, false, true).MarginLeft(1)
+
 type SubsPage struct {
 	subs  *db.SubData
 	list  list.Model
@@ -22,7 +24,7 @@ type SubsPage struct {
 type subItemDelegate struct{}
 
 func (d subItemDelegate) Height() int                             { return 1 }
-func (d subItemDelegate) Spacing() int                            { return 1 }
+func (d subItemDelegate) Spacing() int                            { return 0 }
 func (d subItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d subItemDelegate) Render(w io.Writer, m list.Model, idx int, item list.Item) {
 	style := lipgloss.NewStyle().Inline(true).Faint(true)
@@ -122,11 +124,17 @@ func (m SubsPage) Update(msg tea.Msg) (SubsPage, tea.Cmd) {
 }
 
 func (m SubsPage) View() string {
-	view := m.list.View()
 	if m.input.Focused() {
-		view = lipgloss.Place(CurrWidth/2, CurrHeight/2, lipgloss.Center, lipgloss.Left, m.input.View(), lipgloss.WithWhitespaceChars(view))
+		return m.input.View()
 	}
-	return view
+	details := ""
+	if selected := m.list.SelectedItem(); selected != nil {
+		details = selected.(db.Feed).Description
+	}
+	details = detailsStyle.Width(CurrWidth / 2).Height(CurrHeight - 10).Render(details)
+	m.list.SetWidth(CurrWidth / 2)
+	m.list.SetHeight(CurrHeight - 10)
+	return lipgloss.JoinHorizontal(lipgloss.Left, m.list.View(), details)
 }
 
 func newSubListItems(data *db.SubData) []list.Item {

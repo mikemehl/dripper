@@ -10,17 +10,10 @@ type MenuBar struct {
 	selected int
 }
 
-type MenuBarStyles struct {
-	selected   lipgloss.Style
-	unselected lipgloss.Style
-	box        lipgloss.Style
-}
-
-var topBarStyles = MenuBarStyles{
-	selected:   lipgloss.NewStyle().Background(lipgloss.Color("#1A64C5")).Foreground(lipgloss.Color("#F97137")).Padding(0, 2, 0, 2).UnsetColorWhitespace(),
-	unselected: lipgloss.NewStyle().Foreground(lipgloss.Color("#DAD9C7")).Padding(0, 2, 0, 2).UnsetColorWhitespace(),
-	box:        lipgloss.NewStyle().Padding(1, 0, 1, 0).MaxWidth(250).Border(lipgloss.DoubleBorder(), false, false, true),
-}
+var (
+	unselectedTabStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).Padding(0, 1)
+	selectedTabStyle   = lipgloss.NewStyle().Inherit(unselectedTabStyle).UnsetBorderBottom().Underline(true)
+)
 
 func InitMenuBar(items []string) MenuBar {
 	return MenuBar{
@@ -35,13 +28,13 @@ func (m MenuBar) Update(msg tea.Msg) (MenuBar, tea.Cmd) {
 }
 
 func (m MenuBar) View() string {
-	var bar string
+	bar := ""
 	for i, item := range m.items {
 		if i == m.selected {
-			bar += topBarStyles.selected.Render("👉 " + item)
+			bar = lipgloss.JoinHorizontal(lipgloss.Left, bar, selectedTabStyle.Render(item))
 		} else {
-			bar += topBarStyles.unselected.Render(item)
+			bar = lipgloss.JoinHorizontal(lipgloss.Left, bar, unselectedTabStyle.Render(item))
 		}
 	}
-	return topBarStyles.box.Render(bar) + "\n"
+	return bar
 }

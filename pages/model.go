@@ -88,14 +88,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) render_with_menubar(view string) string {
+	view = lipgloss.NewStyle().Width(CurrWidth).Height(CurrHeight - 10).Render(view)
+	return lipgloss.JoinVertical(lipgloss.Left, m.menu.View(), view)
+}
+
 func (m Model) View() string {
 	switch m.state {
 	case StateIntro:
 		return m.intro.View()
 	case StateSubsList:
-		return m.menu.View() + m.subs.View()
+		return m.render_with_menubar(m.subs.View())
 	case StateSubEpsList:
-		return m.menu.View() + m.subEps.View()
+		return m.render_with_menubar(m.subEps.View())
 	default:
 	}
 	return lipgloss.NewStyle().Blink(true).Render("DANGER! DANGER! NO VIEW IMPLEMENTED FOR STATE: " + string(m.state))

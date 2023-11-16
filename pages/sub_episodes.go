@@ -6,7 +6,6 @@ import (
 
 	key "github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	log "github.com/charmbracelet/log"
@@ -14,44 +13,36 @@ import (
 )
 
 type SubEpsPage struct {
-	subTitle    string
-	list        list.Model
-	details     viewport.Model
+	subTitle string
+	list     list.Model
+	// TODO: Add a viewport for the details panel, allow scrolling with captial letters.
+	// TODO: Maybe extract this logic to a new component? You're reusing it in subs.go.
 	showDetails bool
 }
 
 type epItemDelegate struct{}
 
 func (d epItemDelegate) Height() int                             { return 1 }
-func (d epItemDelegate) Spacing() int                            { return 1 }
+func (d epItemDelegate) Spacing() int                            { return 0 }
 func (d epItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d epItemDelegate) Render(w io.Writer, m list.Model, idx int, item list.Item) {
 	style := lipgloss.NewStyle().Inline(true).Faint(true)
 	if idx == m.Index() {
 		style = style.Faint(false).Foreground(lipgloss.Color("#F97137"))
 	}
-	fmt.Fprintf(w, "%s\n", style.Render(item.(db.Episode).Title))
+	fmt.Fprintf(w, "%s\n", style.MaxWidth(CurrWidth/2-2).Render(item.(db.Episode).Title))
 }
 
 func InitSubepsPage() SubEpsPage {
 	var m SubEpsPage
 	m.subTitle = ""
 	m.list = initList(epItemDelegate{})
-	m.details.Width = m.list.Width()
-	m.details.Height = m.list.Height()
-	m.details.Style = m.details.Style.Align(lipgloss.Left).Border(lipgloss.RoundedBorder())
 	m.list.SetShowTitle(true)
-	m.showDetails = false
 	return m
 }
 
 func (m SubEpsPage) Init() tea.Cmd {
 	return nil
-}
-
-func (m *SubEpsPage) SetDetails(selected db.Episode) {
-	content := lipgloss.NewStyle().MaxWidth(20).MaxHeight(40).Align(lipgloss.Left).Render(selected.Title + selected.Description)
-	m.details.SetContent(content)
 }
 
 func (m SubEpsPage) Update(msg tea.Msg) (SubEpsPage, tea.Cmd) {
@@ -62,18 +53,7 @@ func (m SubEpsPage) Update(msg tea.Msg) (SubEpsPage, tea.Cmd) {
 		case key.Matches(msg, KeyBindings.Quit):
 			return m, tea.Quit
 		case key.Matches(msg, KeyBindings.Back):
-			if m.showDetails {
-				m.showDetails = false
-				return m, nil
-			}
 			return m, func() tea.Msg { return StateChangeMsg{newState: StateSubsList} }
-		case key.Matches(msg, KeyBindings.Confirm):
-			if !m.showDetails {
-				m.showDetails = true
-				m.SetDetails(m.list.SelectedItem().(db.Episode))
-				m.details, cmd = m.details.Update(msg)
-				return m, cmd
-			}
 		default:
 		}
 	case *db.Feed:
@@ -84,20 +64,21 @@ func (m SubEpsPage) Update(msg tea.Msg) (SubEpsPage, tea.Cmd) {
 		m.list.SetItems(newItems)
 	default:
 	}
-	if m.showDetails {
-		m.details, cmd = m.details.Update(msg)
-	} else {
-		m.list, cmd = m.list.Update(msg)
-	}
+	m.list, cmd = m.list.Update(msg)
 	return m, cmd
 }
 
 func (m SubEpsPage) View() string {
-	if m.showDetails {
-		log.Info(m.details.View())
-		return m.details.View()
+	panel_width := CurrWidth / 2
+	panel_height := CurrHeight - 15
+	details := ""
+	if selected := m.list.SelectedItem(); selected != nil {
+		details = selected.(db.Episode).Description
 	}
-	return m.list.View()
+	details = detailsStyle.Width(panel_width).Height(panel_height).MaxWidth(panel_width).MaxHeight(panel_height).Render(details)
+	m.list.SetWidth(panel_width)
+	m.list.SetHeight(panel_height)
+	return lipgloss.JoinHorizontal(lipgloss.Left, m.list.View(), details)
 }
 
 func newSubEpsListItems(data *db.Feed) []list.Item {
