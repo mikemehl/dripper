@@ -5,32 +5,38 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/log"
-	pages "github.com/mikemehl/dripper/pages"
+	"github.com/charmbracelet/lipgloss"
+	log "github.com/charmbracelet/log"
 	tui "github.com/mikemehl/dripper/tui"
 )
 
 type errMsg error
 
 func main() {
+	if err := setupLogging(); err != nil {
+		os.Exit(1)
+	}
+	IntroLog()
 	err := tui.Run()
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
+	} else {
+		log.Info("Exiting Dripper")
 	}
 }
 
-func old_main() {
-	f, err := os.OpenFile("debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+func setupLogging() error {
+	f, err := tea.LogToFile("dripper.log", "debug")
 	if err != nil {
-		log.Fatalf("error opening log file")
-	}
-	log.SetLevel(log.DebugLevel)
-	log.SetOutput(f)
-	log.SetReportCaller(true)
-	log.Info("Starting app========================")
-	p := tea.NewProgram(pages.InitMainModel())
-	if _, err := p.Run(); err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
+	log.SetOutput(f)
+	return nil
+}
+
+func IntroLog() {
+	hr := lipgloss.NewStyle().Border(lipgloss.DoubleBorder(), false, false, true).Width(20)
+	log.Info(hr.Render())
+	log.Info("Starting Dripper")
 }

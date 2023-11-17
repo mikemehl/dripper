@@ -38,63 +38,41 @@ func (s *SubData) LoadFeed(feed gofeed.Feed) {
 }
 
 func LoadFeeds() tea.Msg {
-	db, err := kv.OpenWithDefaults(dbName)
-	if err != nil {
-		log.Fatal("Error opening db: ", "error", err)
-	}
+	db, _ := kv.OpenWithDefaults(dbName)
 	defer db.Close()
 
-	keys, err := db.Keys()
-	if err != nil {
-		log.Fatal("Error getting keys: ", "error", err)
-	} else {
-		log.Info("Got keys: ", "keys", keys)
-	}
+	keys, _ := db.Keys()
 
 	var subData SubData
 	for _, key := range keys {
-		raw_feed, err := db.Get(key)
-		if err != nil {
-			log.Fatal("Error getting key:", "key", key, "error", err)
-		}
-		feed, err := decodeFeed(raw_feed)
-		if err != nil {
-			log.Fatal("Error decoding feed:", "error", err)
-		}
-		log.Debug("Loaded feed: ", "title", feed.Title)
-		// log.Debug("Feed has items:", "number of items", len(feed.Items), "items", feed.Items)
+		raw_feed, _ := db.Get(key)
+		feed, _ := decodeFeed(raw_feed)
 		subData.LoadFeed(feed)
 	}
 
-	log.Info("Loaded feeds")
 	data := SubData(subData)
+	log.Debug("Loaded feeds from db")
 	return &data
 }
 
 func NewFeed(url string) (gofeed.Feed, error) {
-	log.Info("Adding new feed: ", "url", url)
 	feed, err := newFeedFromURL(url)
 	if err != nil {
-		log.Error("Error adding new feed: ", "error", err)
 		return gofeed.Feed{}, err
 	}
 	db, err := kv.OpenWithDefaults(dbName)
 	if err != nil {
-		log.Error("Error opening db: ", "error", err)
 		return gofeed.Feed{}, err
 	}
 	defer db.Close()
 	err = addFromFeed(db, feed)
 	if err != nil {
-		log.Error("Error adding feed to db: ", "error", err)
 		return gofeed.Feed{}, err
 	}
 	if err := db.Sync(); err != nil {
-		log.Info("Error syncing db: ", "error", err)
 		return gofeed.Feed{}, err
 	}
 
-	log.Info("Added new feed: ", "title", feed.Title)
 	return feed, nil
 }
 
@@ -108,22 +86,14 @@ func newFeedFromURL(url string) (gofeed.Feed, error) {
 }
 
 func addFrromFeeds(feeds []gofeed.Feed) {
-	db, err := kv.OpenWithDefaults(dbName)
-	if err != nil {
-		log.Fatal(err)
-	}
+	db, _ := kv.OpenWithDefaults(dbName)
 	defer db.Close()
 
 	for _, feed := range feeds {
-		err := addFromFeed(db, feed)
-		if err != nil {
-			log.Fatal(err)
-		}
+		_ = addFromFeed(db, feed)
 	}
 
-	if err := db.Sync(); err != nil {
-		log.Fatal(err)
-	}
+	_ = db.Sync()
 }
 
 func addFromFeed(db *kv.KV, feed gofeed.Feed) error {
@@ -135,8 +105,6 @@ func addFromFeed(db *kv.KV, feed gofeed.Feed) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Adding feed: ", "title", feed.Title)
-	log.Info("Feed has key: ", "key", key)
 	db.Set(key, val)
 	return nil
 }
