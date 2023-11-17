@@ -22,13 +22,13 @@ type (
 	}
 )
 
-func (f Feed) FilterValue() string {
-	return f.Title
-}
-
-func (e Episode) FilterValue() string {
-	return e.Title
-}
+// Implementations for the DetailListItem interface
+func (f Feed) FilterValue() string    { return f.Title }
+func (f Feed) Name() string           { return f.Title }
+func (f Feed) Details() string        { return f.Description }
+func (e Episode) FilterValue() string { return e.Title }
+func (e Episode) Name() string        { return e.Title }
+func (e Episode) Details() string     { return e.Description }
 
 func (s *SubData) LoadFeed(feed gofeed.Feed) {
 	s.Feeds = append(s.Feeds, Feed(feed))
@@ -67,7 +67,8 @@ func LoadFeeds() tea.Msg {
 	}
 
 	log.Info("Loaded feeds")
-	return SubData(subData)
+	data := SubData(subData)
+	return &data
 }
 
 func NewFeed(url string) (gofeed.Feed, error) {
