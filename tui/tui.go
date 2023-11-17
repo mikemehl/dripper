@@ -7,6 +7,7 @@ import (
 	log "github.com/charmbracelet/log"
 	"github.com/mikemehl/dripper/db"
 	models "github.com/mikemehl/dripper/models"
+	"github.com/mikemehl/dripper/utils"
 )
 
 var appBoxStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder()).Padding(1)
@@ -67,7 +68,19 @@ func (app App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (app App) View() string {
-	return app.style.Render(lipgloss.JoinVertical(lipgloss.Top, app.menu.View(), app.podcasts.View()))
+	var currView string
+	switch menu := app.menu.(type) {
+	case models.Menu:
+		switch menu.Active() {
+		case 0:
+			currView = app.podcasts.View()
+		case 1:
+			currView = app.episodes.View()
+		default:
+			currView = "Error"
+		}
+	}
+	return app.style.Render(lipgloss.JoinVertical(lipgloss.Top, app.menu.View(), currView))
 }
 
 func (app *App) processKey(msg tea.Msg) tea.Cmd {
@@ -81,16 +94,10 @@ func (app *App) processKey(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-func ScaleDimensions(msg tea.WindowSizeMsg, bottom int, wtop int, htop int) tea.WindowSizeMsg {
-	msg.Width = msg.Width / 10 * wtop
-	msg.Height = msg.Height / 10 * htop
-	return msg
-}
-
 func (app *App) SetDimensions(msg tea.WindowSizeMsg) tea.WindowSizeMsg {
-	msg = ScaleDimensions(msg, 10, 9, 9)
-	app.style = app.style.Width(msg.Width).Height(msg.Height)
-	msg = ScaleDimensions(msg, 10, 9, 7)
+	msg = utils.ScaleDimensions(msg, 10, 9, 9)
+	app.style = app.style.Width(msg.Width).Height(msg.Height).Align(lipgloss.Left, lipgloss.Top)
+	msg = utils.ScaleDimensions(msg, 10, 7, 5)
 	return msg
 }
 
@@ -107,6 +114,22 @@ func (app App) UpdateSubModels(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 	return app, tea.Batch(cmds...)
+}
+
+func (app App) UpdateActiveModel() (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch menu := app.menu.(type) {
+	case models.Menu:
+		switch menu.Active() {
+		case 0:
+			app.podcasts, cmd = app.podcasts.Update(app.data.Feeds)
+			return app, cmd
+		case 1:
+			app.episodes, cmd = app.episodes.Update(app.data.Feeds)
+			return app, cmd
+		}
+	}
+	return app, nil
 }
 
 func (app App) UpdateFeeds(data *db.SubData) (tea.Model, tea.Cmd) {

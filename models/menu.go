@@ -3,6 +3,7 @@ package models
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mikemehl/dripper/utils"
 )
 
 type MenuItem struct {
@@ -14,6 +15,7 @@ type Menu struct {
 	items     []MenuItem
 	active    int
 	itemWidth int
+	style     lipgloss.Style
 }
 
 var (
@@ -34,6 +36,7 @@ func NewMenu(items []MenuItem) tea.Model {
 		items:     items,
 		active:    0,
 		itemWidth: width,
+		style:     menuStyle,
 	})
 }
 
@@ -45,15 +48,17 @@ func (m Menu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "left", "h":
+		case "H":
 			if m.active > 0 {
 				m.active--
 			}
-		case "right", "l":
+		case "L":
 			if m.active < len(m.items)-1 {
 				m.active++
 			}
 		}
+	case tea.WindowSizeMsg:
+		_ = m.SetDimensions(msg)
 	}
 	return m, nil
 }
@@ -62,10 +67,20 @@ func (m Menu) View() string {
 	view := ""
 	for i, item := range m.items {
 		if i == m.active {
-			view = lipgloss.JoinHorizontal(lipgloss.Top, view, menuItemActiveStyle.Width(m.itemWidth).Render(item.Name))
+			view = lipgloss.JoinHorizontal(lipgloss.Top, view, menuItemActiveStyle.Width(m.itemWidth).Align(lipgloss.Center, lipgloss.Center).Render(item.Name))
 		} else {
-			view = lipgloss.JoinHorizontal(lipgloss.Top, view, menuItemStyle.Width(m.itemWidth).Render(item.Name))
+			view = lipgloss.JoinHorizontal(lipgloss.Top, view, menuItemStyle.Width(m.itemWidth).Align(lipgloss.Center, lipgloss.Center).Render(item.Name))
 		}
 	}
 	return menuStyle.Render(view)
+}
+
+func (m Menu) Active() int {
+	return m.active
+}
+
+func (m *Menu) SetDimensions(msg tea.WindowSizeMsg) tea.WindowSizeMsg {
+	msg = utils.ScaleDimensions(msg, 10, 9, 2)
+	m.style = m.style.Width(msg.Width).Height(msg.Height).Align(lipgloss.Left, lipgloss.Top)
+	return msg
 }
