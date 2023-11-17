@@ -28,6 +28,7 @@ func main() {
 
 func setupLogging() error {
 	f, err := tea.LogToFile("dripper.log", "debug")
+	log.SetLevel(log.DebugLevel)
 	if err != nil {
 		fmt.Println(err)
 		return err

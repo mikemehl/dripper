@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 
 	list "github.com/charmbracelet/bubbles/list"
 )
@@ -19,14 +20,13 @@ type DetailListItem interface {
 var (
 	detailListItemStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB86C")).Align(lipgloss.Left)
 	detailListSelectedStyle = detailListItemStyle.Copy().Foreground(lipgloss.Color("#FF79C6")).Bold(true)
-	detailBoxStyle          = lipgloss.NewStyle().Border(lipgloss.InnerHalfBlockBorder(), false, false, false, true)
+	detailBoxStyle          = lipgloss.NewStyle().Border(lipgloss.HiddenBorder(), false, false, false, true).Padding(1)
 	detailKeys              = list.DefaultKeyMap()
 )
 
 type DetailList struct {
-	list   list.Model
-	height int
-	width  int
+	list        list.Model
+	detailStyle lipgloss.Style
 }
 
 type DetailListItemDelegate struct{}
@@ -52,24 +52,30 @@ func (d DetailListItemDelegate) Spacing() int { return 0 }
 // delegate.
 func (d DetailListItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 
-func NewDetailList(items []list.Item, width int, height int) DetailList {
+func NewDetailList(items []list.Item, width int, height int) tea.Model {
 	list := list.New(items, DetailListItemDelegate{}, width/2, height)
-	list.StartSpinner()
+	list.SetShowTitle(false)
+	list.SetFilteringEnabled(true)
+	list.SetShowHelp(true)
+	detailStyle := detailBoxStyle.Width(width / 2)
+	detailStyle = detailStyle.Height(height)
 	return DetailList{
-		list:   list,
-		height: height,
-		width:  width,
+		list:        list,
+		detailStyle: detailStyle,
 	}
 }
 
 func (d DetailList) Init() tea.Cmd {
-	return nil
+	return func() tea.Msg { return d.list.StartSpinner() }
 }
 
-func (d DetailList) Update(msg tea.Msg) (DetailList, tea.Cmd) {
+func (d DetailList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		d.SetDimensions(msg.Width, msg.Height)
 	case []list.Item:
+		log.Debug("DetailList.Update() []list.Item")
 		d.list.SetItems(msg)
 		d.list.StopSpinner()
 	}
@@ -78,13 +84,19 @@ func (d DetailList) Update(msg tea.Msg) (DetailList, tea.Cmd) {
 }
 
 func (d DetailList) View() string {
-	// details := ""
-	// if len(d.list.Items()) > 0 {
-	// 	details = d.list.SelectedItem().(DetailListItem).Details()
-	// }
-	// d.list.SetWidth(d.width / 2)
-	// d.list.SetHeight(d.height)
-	return d.list.View()
-	// return lipgloss.JoinHorizontal(lipgloss.Left,
-	// 	d.list.View(), detailBoxStyle.MaxWidth(d.width/2).MaxHeight(d.height).Render(details))
+	details := ""
+	if len(d.list.Items()) > 0 {
+		details = d.list.SelectedItem().(DetailListItem).Details()
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Left,
+		d.list.View(), d.detailStyle.Render(details))
+}
+
+func (d *DetailList) SetDimensions(width int, height int) {
+	width = width / 2
+	height = height / 10 * 7
+	d.list.SetWidth(width)
+	d.list.SetHeight(height)
+	d.list.SetSize(width, height)
+	d.detailStyle = d.detailStyle.Width(width).MaxWidth(width).Height(height).MaxHeight(height)
 }

@@ -22,7 +22,7 @@ var (
 	menuStyle           = lipgloss.NewStyle()
 )
 
-func NewMenu(items []MenuItem) Menu {
+func NewMenu(items []MenuItem) tea.Model {
 	width := 0
 	for _, item := range items {
 		if len(item.Name) > width {
@@ -30,18 +30,18 @@ func NewMenu(items []MenuItem) Menu {
 		}
 	}
 	width += 2
-	return Menu{
+	return tea.Model(Menu{
 		items:     items,
 		active:    0,
 		itemWidth: width,
-	}
+	})
 }
 
 func (m Menu) Init() tea.Cmd {
 	return nil
 }
 
-func (m Menu) Update(msg tea.Msg) (Menu, tea.Cmd) {
+func (m Menu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {

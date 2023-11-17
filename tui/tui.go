@@ -2,7 +2,6 @@ package tui
 
 import (
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	log "github.com/charmbracelet/log"
@@ -10,16 +9,15 @@ import (
 	models "github.com/mikemehl/dripper/models"
 )
 
-var appBoxStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+var appBoxStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder()).Padding(1)
 
 type App struct {
+	style    lipgloss.Style
 	data     *db.SubData
-	loading  spinner.Model
-	podcasts models.DetailList
-	episodes models.DetailList
-	menu     models.Menu
-	width    int
-	height   int
+	podcasts tea.Model
+	episodes tea.Model
+	active   *tea.Model
+	menu     tea.Model
 }
 
 func Run() error {
@@ -33,71 +31,43 @@ func Run() error {
 }
 
 func NewApp() tea.Model {
+	podcasts := models.NewDetailList([]list.Item{}, 40, 40)
+	episodes := models.NewDetailList([]list.Item{}, 40, 40)
 	return App{
 		menu: models.NewMenu([]models.MenuItem{
 			{Name: "Podcasts", Action: nil},
 			{Name: "Episodes", Action: nil},
 		}),
 		data:     nil,
-		podcasts: models.NewDetailList([]list.Item{}, 40, 40),
-		episodes: models.NewDetailList([]list.Item{}, 40, 40),
-		width:    40,
-		height:   40,
-		loading:  spinner.New(),
+		podcasts: podcasts,
+		episodes: episodes,
+		style:    appBoxStyle,
 	}
 }
 
 func (app App) Init() tea.Cmd {
 	log.Debug("I was called")
-	return tea.Batch(app.loading.Tick, db.LoadFeeds)
+	return db.LoadFeeds
 }
 
 func (app App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	log.Debug("Update got ", "msg", msg)
-	log.Debug("HELLLLLLOOOO")
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		msg = app.SetDimensions(msg)
 	case tea.KeyMsg:
 		if cmd = app.processKey(msg); cmd != nil {
 			return app, cmd
 		}
 	case *db.SubData:
-		log.Debug("Updating app data")
-		app.data = msg
-		feeds := make([]list.Item, len(app.data.Feeds))
-		episodes := make([]list.Item, len(app.data.Episodes))
-		for i, feed := range app.data.Feeds {
-			feeds[i] = list.Item(feed)
-		}
-		for i, episode := range app.data.Episodes {
-			episodes[i] = list.Item(episode)
-		}
-		app.podcasts, _ = app.podcasts.Update(app.data.Feeds)
-		app.episodes, _ = app.episodes.Update(app.data.Episodes)
+		return app.UpdateFeeds(msg)
 	default:
-		if app.data == nil {
-			app.loading, cmd = app.loading.Update(msg)
-			return app, cmd
-		}
 	}
-	if app.menu, cmd = app.menu.Update(msg); cmd != nil {
-		return app, cmd
-	}
-	if app.podcasts, cmd = app.podcasts.Update(msg); cmd != nil {
-		return app, cmd
-	}
-	if app.episodes, cmd = app.episodes.Update(msg); cmd != nil {
-		return app, cmd
-	}
-	return app, cmd
+	return app.UpdateSubModels(msg)
 }
 
 func (app App) View() string {
-	// return appBoxStyle.MaxWidth(app.width).MaxHeight(app.height).Render(lipgloss.JoinVertical(lipgloss.Top, app.menu.View(), app.podcasts.View()))
-	if app.data == nil {
-		return app.loading.View()
-	}
-	return app.podcasts.View()
+	return app.style.Render(lipgloss.JoinVertical(lipgloss.Top, app.menu.View(), app.podcasts.View()))
 }
 
 func (app *App) processKey(msg tea.Msg) tea.Cmd {
@@ -109,4 +79,47 @@ func (app *App) processKey(msg tea.Msg) tea.Cmd {
 		}
 	}
 	return nil
+}
+
+func ScaleDimensions(msg tea.WindowSizeMsg, bottom int, wtop int, htop int) tea.WindowSizeMsg {
+	msg.Width = msg.Width / 10 * wtop
+	msg.Height = msg.Height / 10 * htop
+	return msg
+}
+
+func (app *App) SetDimensions(msg tea.WindowSizeMsg) tea.WindowSizeMsg {
+	msg = ScaleDimensions(msg, 10, 9, 9)
+	app.style = app.style.Width(msg.Width).Height(msg.Height)
+	msg = ScaleDimensions(msg, 10, 9, 7)
+	return msg
+}
+
+func (app App) UpdateSubModels(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+	if app.menu, cmd = app.menu.Update(msg); cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+	if app.podcasts, cmd = app.podcasts.Update(msg); cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+	if app.episodes, cmd = app.episodes.Update(msg); cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+	return app, tea.Batch(cmds...)
+}
+
+func (app App) UpdateFeeds(data *db.SubData) (tea.Model, tea.Cmd) {
+	app.data = data
+	feeds := make([]list.Item, len(app.data.Feeds))
+	episodes := make([]list.Item, len(app.data.Episodes))
+	for i, feed := range app.data.Feeds {
+		feeds[i] = list.Item(feed)
+	}
+	for i, episode := range app.data.Episodes {
+		episodes[i] = list.Item(episode)
+	}
+	app.podcasts, _ = app.podcasts.Update(feeds)
+	app.episodes, _ = app.episodes.Update(episodes)
+	return app.UpdateSubModels(data)
 }
