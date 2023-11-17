@@ -17,6 +17,7 @@ func main() {
 		os.Exit(1)
 	}
 	IntroLog()
+	log.Debug("Calling Run()")
 	err := tui.Run()
 	if err != nil {
 		log.Error(err)

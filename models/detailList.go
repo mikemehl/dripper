@@ -78,6 +78,13 @@ func (d DetailList) Update(msg tea.Msg) (DetailList, tea.Cmd) {
 }
 
 func (d DetailList) View() string {
-	details := d.list.SelectedItem().(DetailListItem).Details()
-	return detailBoxStyle.Render(lipgloss.JoinHorizontal(lipgloss.Left, d.list.View(), detailBoxStyle.Render(details)))
+	// details := ""
+	// if len(d.list.Items()) > 0 {
+	// 	details = d.list.SelectedItem().(DetailListItem).Details()
+	// }
+	// d.list.SetWidth(d.width / 2)
+	// d.list.SetHeight(d.height)
+	return d.list.View()
+	// return lipgloss.JoinHorizontal(lipgloss.Left,
+	// 	d.list.View(), detailBoxStyle.MaxWidth(d.width/2).MaxHeight(d.height).Render(details))
 }

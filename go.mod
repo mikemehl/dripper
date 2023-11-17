@@ -7,6 +7,7 @@ require (
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/charm v0.12.6
 	github.com/charmbracelet/lipgloss v0.9.1
+	github.com/charmbracelet/log v0.2.2
 	github.com/gosimple/slug v1.13.1
 	github.com/mmcdole/gofeed v1.2.1
 )
@@ -22,7 +23,6 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/charmbracelet/keygen v0.4.2 // indirect
-	github.com/charmbracelet/log v0.2.2 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
 	github.com/dgraph-io/badger/v3 v3.2103.2 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
