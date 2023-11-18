@@ -28,6 +28,10 @@ var (
 	menuStyle           = lipgloss.NewStyle()
 )
 
+func MenuSetActiveCmd(index int) tea.Cmd {
+	return func() tea.Msg { return MenuSetActive{Index: index} }
+}
+
 func NewMenu(items []MenuItem) tea.Model {
 	width := 0
 	for _, item := range items {

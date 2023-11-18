@@ -17,6 +17,7 @@ type App struct {
 	data     *db.SubData
 	podcasts tea.Model
 	episodes tea.Model
+	add      tea.Model
 	menu     tea.Model
 }
 
@@ -45,6 +46,7 @@ func SelectPodcast(d models.DetailList) tea.Cmd {
 func NewApp() tea.Model {
 	podcasts := models.NewDetailList([]list.Item{}, 40, 40, SelectPodcast)
 	episodes := models.NewDetailList([]list.Item{}, 40, 40, models.DefaultSelectAction)
+	add := models.NewAdd()
 	return App{
 		menu: models.NewMenu([]models.MenuItem{
 			{Name: "Podcasts", Action: nil},
@@ -54,6 +56,7 @@ func NewApp() tea.Model {
 		podcasts: podcasts,
 		episodes: episodes,
 		style:    appBoxStyle,
+		add:      add,
 	}
 }
 
@@ -68,45 +71,67 @@ func (app App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		msg = app.SetDimensions(msg)
 	case tea.KeyMsg:
-		if cmd = app.processKey(msg); cmd != nil {
-			app, batchCmd := app.UpdateSubModels(msg)
-			return app, tea.Batch(cmd, batchCmd)
-		}
+		cmd = app.processKey(msg)
 	case *db.SubData:
 		return app.UpdateFeeds(msg)
 	case []*db.Episode:
 		app.episodes, _ = app.UpdateEpisodes(msg)
 		return app, cmd
+	case models.FocusRemove:
+		if msg.Complete {
+			context := msg.Context
+			value := msg.Value
+			cmd = context.(models.AddContext)(value)
+		}
 	default:
 	}
-	return app.UpdateSubModels(msg)
+	newApp, batchCmd := app.UpdateSubModels(msg)
+	return newApp, tea.Batch(cmd, batchCmd)
 }
 
 func (app App) View() string {
 	var currView string
-	switch menu := app.menu.(type) {
-	case models.Menu:
-		switch menu.Active() {
-		case 0:
-			log.Debug("Podcasts View")
-			currView = app.podcasts.View()
-		case 1:
-			log.Debug("Episodes View")
-			currView = app.episodes.View()
-		default:
-			currView = "Error"
-		}
+	active := app.menu.(models.Menu).Active()
+	switch {
+	case app.AddFocused():
+		log.Debug("Add View")
+		currView = app.add.View()
+	case active == 0:
+		log.Debug("Podcasts View")
+		currView = app.podcasts.View()
+	case active == 1:
+		log.Debug("Episodes View")
+		currView = app.episodes.View()
+	default:
+		currView = "Error"
 	}
+
 	return app.style.Render(lipgloss.JoinVertical(lipgloss.Top, app.menu.View(), currView))
 }
 
 func (app *App) processKey(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd = nil
-	switch msg.String() {
-	case "q", "ctrl+c":
+	key := msg.String()
+	switch {
+	case app.AddFocused() && key != "ctrl+c":
+		cmd = nil
+	case key == "q" || key == "ctrl+c":
 		cmd = tea.Quit
-	case "esc":
+	case key == "esc":
 		cmd = func() tea.Msg { return app.data }
+	case key == "a":
+		cmd = func() tea.Msg {
+			return models.FocusAdd{
+				Prompt: "Add Podcast URL", Context: models.AddContext(
+					func(s string) tea.Cmd {
+						_, err := db.NewFeed(s)
+						if err != nil {
+							return nil
+						}
+						return db.LoadFeeds
+					}),
+			}
+		}
 	}
 	return cmd
 }
@@ -121,6 +146,19 @@ func (app *App) SetDimensions(msg tea.WindowSizeMsg) tea.WindowSizeMsg {
 func (app App) UpdateSubModels(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
+	if app.add, cmd = app.add.Update(msg); cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+	switch add := app.add.(type) {
+	case models.Add:
+		if add.Focused() {
+			switch msgType := msg.(type) {
+			case tea.KeyMsg:
+				msgType = msgType
+				msg = nil
+			}
+		}
+	}
 	if app.menu, cmd = app.menu.Update(msg); cmd != nil {
 		cmds = append(cmds, cmd)
 	}
@@ -154,4 +192,12 @@ func (app *App) UpdateEpisodes(data []*db.Episode) (tea.Model, tea.Cmd) {
 		episodes[i] = list.Item(episode)
 	}
 	return app.episodes.Update(episodes)
+}
+
+func (app App) AddFocused() bool {
+	switch add := app.add.(type) {
+	case models.Add:
+		return add.Focused()
+	}
+	return false
 }
