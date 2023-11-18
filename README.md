@@ -14,6 +14,7 @@ A handy tui for listening to and managing podcasts. Implemented with [Bubbletea]
 - [X] List episodes and descriptions
 - [X] Render html in descriptions
 - [X] Use viewport for descriptions and enable scrolling
+- [ ] Add episode view for individual podcast
 - [ ] Expand help bar with unlisted controls
 - [ ] :bug: Fix filtering crash
 - [ ] Add ability to subscribe to podcasts

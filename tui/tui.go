@@ -13,12 +13,13 @@ import (
 var appBoxStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder()).Padding(1)
 
 type App struct {
-	style    lipgloss.Style
-	data     *db.SubData
-	podcasts tea.Model
-	episodes tea.Model
-	active   *tea.Model
-	menu     tea.Model
+	style              lipgloss.Style
+	data               *db.SubData
+	podcasts           tea.Model
+	episodes           tea.Model
+	podEpisodes        tea.Model
+	menu               tea.Model
+	showingPodEpisodes bool
 }
 
 func Run() error {
@@ -34,15 +35,18 @@ func Run() error {
 func NewApp() tea.Model {
 	podcasts := models.NewDetailList([]list.Item{}, 40, 40)
 	episodes := models.NewDetailList([]list.Item{}, 40, 40)
+	podEpisodes := models.NewDetailList([]list.Item{}, 40, 40)
 	return App{
 		menu: models.NewMenu([]models.MenuItem{
 			{Name: "Podcasts", Action: nil},
 			{Name: "Episodes", Action: nil},
 		}),
-		data:     nil,
-		podcasts: podcasts,
-		episodes: episodes,
-		style:    appBoxStyle,
+		data:               nil,
+		podcasts:           podcasts,
+		episodes:           episodes,
+		podEpisodes:        podEpisodes,
+		style:              appBoxStyle,
+		showingPodEpisodes: false,
 	}
 }
 
@@ -71,13 +75,17 @@ func (app App) View() string {
 	var currView string
 	switch menu := app.menu.(type) {
 	case models.Menu:
-		switch menu.Active() {
-		case 0:
-			currView = app.podcasts.View()
-		case 1:
-			currView = app.episodes.View()
-		default:
-			currView = "Error"
+		if app.showingPodEpisodes {
+			currView = app.podEpisodes.View()
+		} else {
+			switch menu.Active() {
+			case 0:
+				currView = app.podcasts.View()
+			case 1:
+				currView = app.episodes.View()
+			default:
+				currView = "Error"
+			}
 		}
 	}
 	return app.style.Render(lipgloss.JoinVertical(lipgloss.Top, app.menu.View(), currView))
@@ -89,6 +97,10 @@ func (app *App) processKey(msg tea.Msg) tea.Cmd {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return tea.Quit
+		case "esc":
+			if app.showingPodEpisodes {
+				app.showingPodEpisodes = false
+			}
 		}
 	}
 	return nil
@@ -113,23 +125,28 @@ func (app App) UpdateSubModels(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if app.episodes, cmd = app.episodes.Update(msg); cmd != nil {
 		cmds = append(cmds, cmd)
 	}
+	if app.podEpisodes, cmd = app.podEpisodes.Update(msg); cmd != nil {
+		cmds = append(cmds, cmd)
+	}
 	return app, tea.Batch(cmds...)
 }
 
 func (app App) UpdateActiveModel() (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	switch menu := app.menu.(type) {
-	case models.Menu:
-		switch menu.Active() {
-		case 0:
-			app.podcasts, cmd = app.podcasts.Update(app.data.Feeds)
-			return app, cmd
-		case 1:
-			app.episodes, cmd = app.episodes.Update(app.data.Feeds)
-			return app, cmd
+	var cmd tea.Cmd = nil
+	if app.showingPodEpisodes {
+		app.podEpisodes, cmd = app.podEpisodes.Update(app.data.Episodes)
+	} else {
+		switch menu := app.menu.(type) {
+		case models.Menu:
+			switch menu.Active() {
+			case 0:
+				app.podcasts, cmd = app.podcasts.Update(app.data.Feeds)
+			case 1:
+				app.episodes, cmd = app.episodes.Update(app.data.Feeds)
+			}
 		}
 	}
-	return app, nil
+	return app, cmd
 }
 
 func (app App) UpdateFeeds(data *db.SubData) (tea.Model, tea.Cmd) {
