@@ -10,7 +10,15 @@ import (
 	"github.com/mikemehl/dripper/utils"
 )
 
-var appBoxStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder()).Padding(1)
+var (
+	appBoxStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder()).Padding(1)
+	logoStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0080")).Width(40).Align(lipgloss.Right)
+	logoText    = `
+ █▀▄ █▀█ █ █▀█ █▀█ █▀▀ █▀█
+ █▄▀ █▀▄ █ █▀▀ █▀▀ ██▄ █▀▄
+  `
+	logo = logoStyle.Render(logoText)
+)
 
 type App struct {
 	style    lipgloss.Style
@@ -105,7 +113,6 @@ func (app App) View() string {
 	default:
 		currView = "Error"
 	}
-
 	return app.style.Render(lipgloss.JoinVertical(lipgloss.Top, app.menu.View(), currView))
 }
 
