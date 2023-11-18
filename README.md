@@ -14,10 +14,13 @@ A handy tui for listening to and managing podcasts. Implemented with [Bubbletea]
 - [X] List episodes and descriptions
 - [X] Render html in descriptions
 - [X] Use viewport for descriptions and enable scrolling
-- [ ] Add episode view for individual podcast
+- [X] Add ability to subscribe to podcasts
+- [X] Fix database syncing at startup
+- [ ] :bug: Prevent duplicate podcasts from being added
+- [ ] Add episodes view for individual podcast
+- [ ] :vhs: Rerecord GIF for README
 - [ ] Expand help bar with unlisted controls
 - [ ] :bug: Fix filtering crash
-- [ ] Add ability to subscribe to podcasts
 - [ ] Add ability to unsubscribe from podcasts
 - [ ] Add ability to download episodes
 - [ ] Add ability to import/export OPML files

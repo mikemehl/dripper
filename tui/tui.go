@@ -124,6 +124,7 @@ func (app *App) processKey(msg tea.KeyMsg) tea.Cmd {
 			return models.FocusAdd{
 				Prompt: "Add Podcast URL", Context: models.AddContext(
 					func(s string) tea.Cmd {
+						log.Debug("Adding feed", "url", s)
 						_, err := db.NewFeed(s)
 						if err != nil {
 							return nil

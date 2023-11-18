@@ -84,10 +84,11 @@ func (a Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a *Add) PromptClosed(finished bool) (tea.Model, tea.Cmd) {
 	context := a.context
+	value := a.input.Value()
 	a.context = nil
 	a.input.Blur()
 	a.input.Reset()
-	return a, func() tea.Msg { return FocusRemove{Value: a.input.Value(), Complete: finished, Context: context} }
+	return a, func() tea.Msg { return FocusRemove{Value: value, Complete: finished, Context: context} }
 }
 
 func (a Add) View() string {

@@ -50,6 +50,8 @@ func LoadFeeds() tea.Msg {
 	db, _ := kv.OpenWithDefaults(dbName)
 	defer db.Close()
 
+	_ = db.Sync()
+
 	keys, _ := db.Keys()
 
 	var subData SubData
