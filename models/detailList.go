@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/mikemehl/dripper/utils"
 
+	"github.com/charmbracelet/bubbles/key"
 	list "github.com/charmbracelet/bubbles/list"
 	viewport "github.com/charmbracelet/bubbles/viewport"
 )
@@ -65,6 +66,15 @@ func NewDetailList(items []list.Item, width int, height int) tea.Model {
 	list.SetShowTitle(false)
 	list.SetFilteringEnabled(true)
 	list.SetShowHelp(true)
+	list.DisableQuitKeybindings()
+	list.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			key.NewBinding(key.WithHelp("H", "Previous tab")),
+			key.NewBinding(key.WithHelp("L", "Next tab")),
+			key.NewBinding(key.WithHelp("J", "Scroll description down")),
+			key.NewBinding(key.WithHelp("K", "Scroll description up")),
+		}
+	}
 	details := viewport.New(width/2, height)
 	return DetailList{
 		list:    list,
@@ -84,6 +94,13 @@ func (d DetailList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		log.Debug("DetailList.Update() []list.Item")
 		d.list.SetItems(msg)
 		d.list.StopSpinner()
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "J":
+			d.details.HalfViewDown()
+		case "K":
+			d.details.HalfViewUp()
+		}
 	}
 	return d.UpdatePanels(msg)
 }
