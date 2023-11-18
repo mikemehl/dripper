@@ -34,6 +34,7 @@ type FocusRemove struct {
 var (
 	defaultPromptStyle    = lipgloss.NewStyle().Align(lipgloss.Left)
 	defaultPromptBoxStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder()).Padding(1).Align(lipgloss.Center)
+	defaultPromptBgStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#282a36")).Inline(true)
 )
 
 func NewAdd() tea.Model {
@@ -93,7 +94,7 @@ func (a Add) View() string {
 	view := a.promptStyle.Align(lipgloss.Left).Render(a.prompt)
 	view = lipgloss.JoinVertical(lipgloss.Top, view, a.input.View())
 	view = a.boxStyle.Render(view)
-	view = lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, view, lipgloss.WithWhitespaceChars(""), lipgloss.WithWhitespaceBackground(lipgloss.Color("#666666")))
+	view = lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, view, lipgloss.WithWhitespaceForeground(lipgloss.Color("#282a36")), lipgloss.WithWhitespaceChars("  "))
 	return view
 }
 
