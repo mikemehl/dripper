@@ -12,6 +12,8 @@ A handy tui for listening to and managing podcasts. Implemented with [Bubbletea]
 - [X] Integrate with [Charm](https://github.com/charmbracelet/charm)
 - [X] List podcasts and descriptions
 - [X] List episodes and descriptions
+- [X] Render html in descriptions
+- [ ] Use viewport for descriptions and enable scrolling
 - [ ] Expand help bar with unlisted controls
 - [ ] Add ability to subscribe to podcasts
 - [ ] Add ability to unsubscribe from podcasts

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 
+	md "github.com/JohannesKaufmann/html-to-markdown"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/mikemehl/dripper/utils"
@@ -24,6 +26,7 @@ var (
 	pointerStyle            = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF79C6"))
 	detailBoxStyle          = lipgloss.NewStyle().Border(lipgloss.HiddenBorder(), false, false, false, true).Padding(1)
 	detailKeys              = list.DefaultKeyMap()
+	mdConverter             = md.NewConverter("", true, nil)
 )
 
 type DetailList struct {
@@ -91,6 +94,11 @@ func (d DetailList) View() string {
 	details := ""
 	if len(d.list.Items()) > 0 {
 		details = d.list.SelectedItem().(DetailListItem).Details()
+		if mkdn, err := mdConverter.ConvertString(details); err == nil {
+			if fancy, err := glamour.Render(mkdn, "dark"); err == nil {
+				details = fancy
+			}
+		}
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center,
 		d.list.View(), d.detailStyle.Render(details))
