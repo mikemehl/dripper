@@ -12,6 +12,7 @@ import (
 	"github.com/mikemehl/dripper/utils"
 
 	list "github.com/charmbracelet/bubbles/list"
+	viewport "github.com/charmbracelet/bubbles/viewport"
 )
 
 type DetailListItem interface {
@@ -30,8 +31,8 @@ var (
 )
 
 type DetailList struct {
-	list        list.Model
-	detailStyle lipgloss.Style
+	list    list.Model
+	details viewport.Model
 }
 
 type DetailListItemDelegate struct{}
@@ -64,11 +65,10 @@ func NewDetailList(items []list.Item, width int, height int) tea.Model {
 	list.SetShowTitle(false)
 	list.SetFilteringEnabled(true)
 	list.SetShowHelp(true)
-	detailStyle := detailBoxStyle.Width(width / 2)
-	detailStyle = detailStyle.Height(height)
+	details := viewport.New(width/2, height)
 	return DetailList{
-		list:        list,
-		detailStyle: detailStyle,
+		list:    list,
+		details: details,
 	}
 }
 
@@ -77,7 +77,6 @@ func (d DetailList) Init() tea.Cmd {
 }
 
 func (d DetailList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		d.SetDimensions(msg)
@@ -86,11 +85,21 @@ func (d DetailList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		d.list.SetItems(msg)
 		d.list.StopSpinner()
 	}
-	d.list, cmd = d.list.Update(msg)
-	return d, cmd
+	return d.UpdatePanels(msg)
 }
 
 func (d DetailList) View() string {
+	return lipgloss.JoinHorizontal(lipgloss.Center,
+		d.list.View(), d.details.View())
+}
+
+func (d *DetailList) SetDimensions(msg tea.WindowSizeMsg) {
+	msg = utils.ScaleDimensions(msg, 10, 4, 9)
+	d.list.SetSize(msg.Width, msg.Height)
+	d.details = viewport.New(msg.Width, msg.Height)
+}
+
+func (d *DetailList) UpdateDetails() {
 	details := ""
 	if len(d.list.Items()) > 0 {
 		details = d.list.SelectedItem().(DetailListItem).Details()
@@ -100,12 +109,16 @@ func (d DetailList) View() string {
 			}
 		}
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Center,
-		d.list.View(), d.detailStyle.Render(details))
+	d.details.SetContent(details)
 }
 
-func (d *DetailList) SetDimensions(msg tea.WindowSizeMsg) {
-	msg = utils.ScaleDimensions(msg, 10, 4, 9)
-	d.list.SetSize(msg.Width, msg.Height)
-	d.detailStyle = d.detailStyle.Width(msg.Width).MaxWidth(msg.Width).Height(msg.Height).MaxHeight(msg.Height).Align(lipgloss.Left)
+func (d DetailList) UpdatePanels(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+	d.list, cmd = d.list.Update(msg)
+	cmds = append(cmds, cmd)
+	d.UpdateDetails()
+	d.details, cmd = d.details.Update(msg)
+	cmds = append(cmds, cmd)
+	return d, tea.Batch(cmds...)
 }
