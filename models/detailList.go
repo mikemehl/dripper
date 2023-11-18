@@ -22,6 +22,8 @@ type DetailListItem interface {
 	FilterValue() string
 }
 
+type DetailListAction func(d DetailList) tea.Cmd
+
 var (
 	detailListItemStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB86C"))
 	detailListSelectedStyle = detailListItemStyle.Copy().Foreground(lipgloss.Color("#FF79C6")).Bold(true)
@@ -29,11 +31,13 @@ var (
 	detailBoxStyle          = lipgloss.NewStyle().Border(lipgloss.HiddenBorder(), false, false, false, true).Padding(1)
 	detailKeys              = list.DefaultKeyMap()
 	mdConverter             = md.NewConverter("", true, nil)
+	DefaultSelectAction     = func(d DetailList) tea.Cmd { return nil }
 )
 
 type DetailList struct {
-	list    list.Model
-	details viewport.Model
+	list         list.Model
+	details      viewport.Model
+	selectAction DetailListAction
 }
 
 type DetailListItemDelegate struct{}
@@ -61,24 +65,43 @@ func (d DetailListItemDelegate) Spacing() int { return 1 }
 // delegate.
 func (d DetailListItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 
-func NewDetailList(items []list.Item, width int, height int) tea.Model {
+func extraKeys() []key.Binding {
+	return []key.Binding{
+		key.NewBinding(
+			key.WithKeys("H"),
+			key.WithDisabled(),
+			key.WithHelp("H", "Previous tab")),
+		key.NewBinding(
+			key.WithKeys("L"),
+			key.WithDisabled(),
+			key.WithHelp("L", "Next tab")),
+		key.NewBinding(
+			key.WithKeys("J"),
+			key.WithDisabled(),
+			key.WithHelp("J", "Scroll description down")),
+		key.NewBinding(
+			key.WithKeys("K"),
+			key.WithDisabled(),
+			key.WithHelp("K", "Scroll description up")),
+		key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithDisabled(),
+			key.WithHelp("enter", "Select")),
+	}
+}
+
+func NewDetailList(items []list.Item, width int, height int, action DetailListAction) tea.Model {
 	list := list.New(items, DetailListItemDelegate{}, width/2, height)
 	list.SetShowTitle(false)
 	list.SetFilteringEnabled(true)
 	list.SetShowHelp(true)
 	list.DisableQuitKeybindings()
-	list.AdditionalShortHelpKeys = func() []key.Binding {
-		return []key.Binding{
-			key.NewBinding(key.WithHelp("H", "Previous tab")),
-			key.NewBinding(key.WithHelp("L", "Next tab")),
-			key.NewBinding(key.WithHelp("J", "Scroll description down")),
-			key.NewBinding(key.WithHelp("K", "Scroll description up")),
-		}
-	}
+	list.AdditionalShortHelpKeys = extraKeys
 	details := viewport.New(width/2, height)
 	return DetailList{
-		list:    list,
-		details: details,
+		list:         list,
+		details:      details,
+		selectAction: action,
 	}
 }
 
@@ -87,6 +110,7 @@ func (d DetailList) Init() tea.Cmd {
 }
 
 func (d DetailList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd = nil
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		d.SetDimensions(msg)
@@ -100,9 +124,11 @@ func (d DetailList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			d.details.HalfViewDown()
 		case "K":
 			d.details.HalfViewUp()
+		case "enter":
+			cmd = d.selectAction(d)
 		}
 	}
-	return d.UpdatePanels(msg)
+	return d.UpdatePanels(msg, cmd)
 }
 
 func (d DetailList) View() string {
@@ -129,7 +155,7 @@ func (d *DetailList) UpdateDetails() {
 	d.details.SetContent(details)
 }
 
-func (d DetailList) UpdatePanels(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (d DetailList) UpdatePanels(msg tea.Msg, extra tea.Cmd) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 	d.list, cmd = d.list.Update(msg)
@@ -137,5 +163,12 @@ func (d DetailList) UpdatePanels(msg tea.Msg) (tea.Model, tea.Cmd) {
 	d.UpdateDetails()
 	d.details, cmd = d.details.Update(msg)
 	cmds = append(cmds, cmd)
+	if extra != nil {
+		cmds = append(cmds, extra)
+	}
 	return d, tea.Batch(cmds...)
+}
+
+func (d DetailList) SelectedItem() list.Item {
+	return d.list.SelectedItem()
 }

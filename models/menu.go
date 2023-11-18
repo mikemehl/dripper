@@ -18,6 +18,10 @@ type Menu struct {
 	style     lipgloss.Style
 }
 
+type MenuSetActive struct {
+	Index int
+}
+
 var (
 	menuItemStyle       = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Foreground(lipgloss.Color("#FFB86C")).Align(lipgloss.Center)
 	menuItemActiveStyle = menuItemStyle.Copy().Foreground(lipgloss.Color("#FF79C6")).Underline(true)
@@ -59,6 +63,8 @@ func (m Menu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		_ = m.SetDimensions(msg)
+	case MenuSetActive:
+		m.setActive(msg.Index)
 	}
 	return m, nil
 }
@@ -73,6 +79,13 @@ func (m Menu) View() string {
 		}
 	}
 	return menuStyle.Render(view)
+}
+
+func (m *Menu) setActive(index int) {
+	if index < 0 || index >= len(m.items) {
+		return
+	}
+	m.active = index
 }
 
 func (m Menu) Active() int {

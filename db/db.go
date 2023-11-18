@@ -30,6 +30,15 @@ func (e Episode) FilterValue() string { return e.Title }
 func (e Episode) Name() string        { return e.Title }
 func (e Episode) Details() string     { return e.Description }
 
+// Helper functions for the wrapper types
+func (f Feed) Episodes() []*Episode {
+	episodes := make([]*Episode, 0, len(f.Items))
+	for i, item := range f.Items {
+		episodes[i] = (*Episode)(item)
+	}
+	return episodes
+}
+
 func (s *SubData) LoadFeed(feed gofeed.Feed) {
 	s.Feeds = append(s.Feeds, Feed(feed))
 	for _, it := range feed.Items {
