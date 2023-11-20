@@ -56,8 +56,17 @@ func LoadFeeds() tea.Msg {
 
 	var subData SubData
 	for _, key := range keys {
-		raw_feed, _ := db.Get(key)
-		feed, _ := decodeFeed(raw_feed)
+		raw_feed, err := db.Get(key)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		feed, err := decodeFeed(raw_feed)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		log.Debug("Loaded feed from db: ", "title", feed.Title, "num_items", len(feed.Items))
 		subData.LoadFeed(feed)
 	}
 
@@ -96,7 +105,7 @@ func newFeedFromURL(url string) (gofeed.Feed, error) {
 	return *feed, nil
 }
 
-func addFrromFeeds(feeds []gofeed.Feed) {
+func addFromFeeds(feeds []gofeed.Feed) {
 	db, _ := kv.OpenWithDefaults(dbName)
 	defer db.Close()
 
@@ -109,8 +118,10 @@ func addFrromFeeds(feeds []gofeed.Feed) {
 
 func addFromFeed(db *kv.KV, feed gofeed.Feed) error {
 	key := []byte(slug.Make(feed.Title))
-	if val, _ := db.Get(key); val != nil {
+	if val, err := db.Get(key); val != nil {
 		return nil // already exists
+	} else if err != nil {
+		return err
 	}
 	val, err := encodeFeed(feed)
 	if err != nil {
