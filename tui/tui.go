@@ -78,6 +78,8 @@ func (app App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		msg = app.SetDimensions(msg)
+		newApp, batchCmd := app.UpdateSubModels(msg)
+		return newApp, tea.Batch(cmd, batchCmd)
 	case tea.KeyMsg:
 		cmd = app.processKey(msg)
 	case *db.SubData:
@@ -160,9 +162,8 @@ func (app App) UpdateSubModels(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch add := app.add.(type) {
 	case models.Add:
 		if add.Focused() {
-			switch msgType := msg.(type) {
+			switch msg.(type) {
 			case tea.KeyMsg:
-				msgType = msgType
 				msg = nil
 			}
 		}
