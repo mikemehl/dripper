@@ -4,7 +4,9 @@ A handy tui for listening to and managing podcasts. Implemented with [Bubbletea]
 
 > :warning: This is still a work in progress. It is not yet ready for use.
 
+
 ## Demo
+
 ![demo](./demo.gif)
 
 ## ToDos

@@ -21,17 +21,17 @@ var (
 )
 
 type App struct {
-	style    lipgloss.Style
-	data     *db.SubData
 	podcasts tea.Model
 	episodes tea.Model
 	add      tea.Model
 	menu     tea.Model
+	data     *db.SubData
+	style    lipgloss.Style
 }
 
 func Run() error {
 	log.Debug("Run() called")
-	var app tea.Model = NewApp()
+	app := NewApp()
 	program := tea.NewProgram(app)
 	if _, err := program.Run(); err != nil {
 		log.Error("Dripper quit with error", "error", err)
@@ -45,6 +45,7 @@ func SelectPodcast(d models.DetailList) tea.Cmd {
 	selected := d.SelectedItem()
 	switch selected := selected.(type) {
 	case db.Feed:
+		log.Debug("SelectPodcast", "selected", selected)
 		cmds = append(cmds, func() tea.Msg { return selected })
 		cmds = append(cmds, func() tea.Msg { return models.MenuSetActive{Index: 1} })
 	}

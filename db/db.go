@@ -3,6 +3,8 @@ package db
 import (
 	"bytes"
 	"encoding/gob"
+	"slices"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm/kv"
@@ -44,6 +46,7 @@ func (s *SubData) LoadFeed(feed gofeed.Feed) {
 	for _, it := range feed.Items {
 		s.Episodes = append(s.Episodes, (*Episode)(it))
 	}
+	slices.SortFunc(s.Episodes, episodePtrSort)
 }
 
 func LoadFeeds() tea.Msg {
@@ -71,6 +74,7 @@ func LoadFeeds() tea.Msg {
 	}
 
 	data := SubData(subData)
+	slices.SortFunc(data.Feeds, feedSort)
 	log.Debug("Loaded feeds from db")
 	return &data
 }
@@ -147,4 +151,26 @@ func decodeFeed(data []byte) (gofeed.Feed, error) {
 		return gofeed.Feed{}, err
 	}
 	return feed, nil
+}
+
+func feedSort(a, b Feed) int {
+	return strings.Compare(a.Title, b.Title)
+}
+
+func episodeSort(a, b Episode) int {
+	if a.PublishedParsed.Before(*b.PublishedParsed) {
+		return 1
+	} else if a.PublishedParsed.After(*b.PublishedParsed) {
+		return -1
+	}
+	return 0
+}
+
+func episodePtrSort(a, b *Episode) int {
+	if a.PublishedParsed.Before(*b.PublishedParsed) {
+		return 1
+	} else if a.PublishedParsed.After(*b.PublishedParsed) {
+		return -1
+	}
+	return 0
 }
