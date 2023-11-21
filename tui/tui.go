@@ -46,7 +46,14 @@ func SelectPodcast(d models.DetailList) tea.Cmd {
 	switch selected := selected.(type) {
 	case db.Feed:
 		log.Debug("SelectPodcast", "selected", selected)
-		cmds = append(cmds, func() tea.Msg { return selected })
+		cmds = append(cmds, func() tea.Msg {
+			episodes := make([]*db.Episode, len(selected.Items))
+			for i, episode := range selected.Items {
+				ep := db.Episode(*episode)
+				episodes[i] = &ep
+			}
+			return episodes
+		})
 		cmds = append(cmds, func() tea.Msg { return models.MenuSetActive{Index: 1} })
 	}
 	return tea.Batch(cmds...)
@@ -127,8 +134,11 @@ func (app *App) processKey(msg tea.KeyMsg) tea.Cmd {
 		cmd = nil
 	case key == "q" || key == "ctrl+c":
 		cmd = tea.Quit
+	case key == "u":
+		cmd = db.UpdateFeeds
 	case key == "esc":
-		cmd = func() tea.Msg { return app.data }
+		// Reset episodes and return focus to podcasts
+		cmd = tea.Batch(func() tea.Msg { return app.data }, func() tea.Msg { return models.MenuSetActive{Index: 0} })
 	case key == "a":
 		cmd = func() tea.Msg {
 			return models.FocusAdd{
@@ -210,4 +220,14 @@ func (app App) AddFocused() bool {
 		return add.Focused()
 	}
 	return false
+}
+
+func CmdWithSpinnerMessage(msg string, cmd tea.Cmd) tea.Cmd {
+	return tea.Sequence(
+		func() tea.Msg { return models.SpinnerCmd{Active: true} },
+		func() tea.Msg { return models.MessageCmd{Msg: msg, Active: true} },
+		cmd,
+		func() tea.Msg { return models.SpinnerCmd{Active: false} },
+		func() tea.Msg { return models.MessageCmd{Msg: msg, Active: false} },
+	)
 }

@@ -100,6 +100,45 @@ func NewFeed(url string) (gofeed.Feed, error) {
 	return feed, nil
 }
 
+func UpdateFeeds() tea.Msg {
+	db, _ := kv.OpenWithDefaults(dbName)
+	defer db.Close()
+
+	_ = db.Sync()
+
+	keys, _ := db.Keys()
+	subData := SubData{}
+	for _, key := range keys {
+		feed_stored, err := db.Get(key)
+		if err != nil {
+			log.Error("Unable to get feed from db", "key", key, "error", err)
+			continue
+		}
+		feed, err := decodeFeed(feed_stored)
+		if err != nil {
+			log.Error("Error decoding feed", "key", key, "error", err)
+			continue
+		}
+		feed, err = newFeedFromURL(feed.FeedLink)
+		if err != nil {
+			log.Error("Error fetching feed", "link", feed.Link, "error", err)
+			continue
+		}
+		dbFeed, err := encodeFeed(feed)
+		if err != nil {
+			log.Error("Error encoding feed", "feed", feed, "error", err)
+			continue
+		}
+		db.Set(key, dbFeed)
+		subData.Feeds = append(subData.Feeds, Feed(feed))
+		for _, episode := range feed.Items {
+			subData.Episodes = append(subData.Episodes, (*Episode)(episode))
+		}
+	}
+	slices.SortFunc(subData.Feeds, feedSort)
+	return &subData
+}
+
 func newFeedFromURL(url string) (gofeed.Feed, error) {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(url)

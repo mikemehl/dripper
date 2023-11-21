@@ -22,7 +22,14 @@ type DetailListItem interface {
 	FilterValue() string
 }
 
-type DetailListAction func(d DetailList) tea.Cmd
+type (
+	DetailListAction func(d DetailList) tea.Cmd
+	SpinnerCmd       struct{ Active bool }
+	MessageCmd       struct {
+		Msg    string
+		Active bool
+	}
+)
 
 var (
 	detailListItemStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB86C"))
@@ -36,8 +43,8 @@ var (
 
 type DetailList struct {
 	list         list.Model
-	details      viewport.Model
 	selectAction DetailListAction
+	details      viewport.Model
 }
 
 type DetailListItemDelegate struct{}

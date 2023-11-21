@@ -18,7 +18,8 @@ A handy tui for listening to and managing podcasts. Implemented with [Bubbletea]
 - [X] Use viewport for descriptions and enable scrolling
 - [X] Add ability to subscribe to podcasts
 - [X] Fix database syncing at startup
-- [ ] Add episodes view for individual podcast
+- [X] Add episodes view for individual podcast
+- [X] Add ability to update podcasts
 - [ ] :vhs: Rerecord GIF for README
 - [ ] Expand help bar with unlisted controls
 - [ ] :bug: Fix filtering crash
