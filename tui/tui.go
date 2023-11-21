@@ -135,7 +135,7 @@ func (app *App) processKey(msg tea.KeyMsg) tea.Cmd {
 	case key == "q" || key == "ctrl+c":
 		cmd = tea.Quit
 	case key == "u":
-		cmd = db.UpdateFeeds
+		cmd = CmdWithSpinnerMessage("Updating Feeds", db.UpdateFeeds)
 	case key == "esc":
 		// Reset episodes and return focus to podcasts
 		cmd = tea.Batch(func() tea.Msg { return app.data }, func() tea.Msg { return models.MenuSetActive{Index: 0} })
@@ -228,6 +228,5 @@ func CmdWithSpinnerMessage(msg string, cmd tea.Cmd) tea.Cmd {
 		func() tea.Msg { return models.MessageCmd{Msg: msg, Active: true} },
 		cmd,
 		func() tea.Msg { return models.SpinnerCmd{Active: false} },
-		func() tea.Msg { return models.MessageCmd{Msg: msg, Active: false} },
 	)
 }

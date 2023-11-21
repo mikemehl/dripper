@@ -134,6 +134,17 @@ func (d DetailList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			cmd = d.selectAction(d)
 		}
+	case SpinnerCmd:
+		if msg.Active {
+			d.list.StartSpinner()
+		} else {
+			d.list.StopSpinner()
+		}
+	case MessageCmd:
+		d.list.SetShowStatusBar(msg.Active)
+		if msg.Active {
+			d.list.NewStatusMessage(msg.Msg)
+		}
 	}
 	return d.UpdatePanels(msg, cmd)
 }
