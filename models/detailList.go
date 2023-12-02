@@ -31,6 +31,8 @@ type (
 	}
 )
 
+type ActionMap map[string]DetailListAction
+
 var (
 	detailListItemStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB86C"))
 	detailListSelectedStyle = detailListItemStyle.Copy().Foreground(lipgloss.Color("#FF79C6")).Bold(true)
@@ -44,6 +46,7 @@ var (
 type DetailList struct {
 	list         list.Model
 	selectAction DetailListAction
+	extraActions ActionMap
 	details      viewport.Model
 }
 
@@ -133,6 +136,8 @@ func (d DetailList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			d.details.HalfViewUp()
 		case "enter":
 			cmd = d.selectAction(d)
+		default:
+			cmd = d.checkExtraActions(msg)
 		}
 	case SpinnerCmd:
 		if msg.Active {
@@ -189,4 +194,11 @@ func (d DetailList) UpdatePanels(msg tea.Msg, extra tea.Cmd) (tea.Model, tea.Cmd
 
 func (d DetailList) SelectedItem() list.Item {
 	return d.list.SelectedItem()
+}
+
+func (d DetailList) checkExtraActions(msg tea.KeyMsg) tea.Cmd {
+	if action, ok := d.extraActions[msg.String()]; ok {
+		return action(d)
+	}
+	return nil
 }

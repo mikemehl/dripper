@@ -1,6 +1,10 @@
 package tui
 
 import (
+	"bufio"
+	"net/http"
+	"os"
+
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -95,6 +99,8 @@ func (app App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case []*db.Episode:
 		app.episodes, _ = app.UpdateEpisodes(msg)
 		return app, cmd
+	case models.DownloadEpisode:
+		downloadEpisode(msg)
 	case models.FocusRemove:
 		if msg.Complete {
 			context := msg.Context
@@ -136,6 +142,7 @@ func (app *App) processKey(msg tea.KeyMsg) tea.Cmd {
 		cmd = tea.Quit
 	case key == "u":
 		cmd = CmdWithSpinnerMessage("Updating Feeds", db.UpdateFeeds)
+	case key == "d":
 	case key == "esc":
 		// Reset episodes and return focus to podcasts
 		cmd = tea.Batch(func() tea.Msg { return app.data }, func() tea.Msg { return models.MenuSetActive{Index: 0} })
@@ -227,6 +234,36 @@ func CmdWithSpinnerMessage(msg string, cmd tea.Cmd) tea.Cmd {
 		func() tea.Msg { return models.SpinnerCmd{Active: true} },
 		func() tea.Msg { return models.MessageCmd{Msg: msg, Active: true} },
 		cmd,
+		func() tea.Msg { return models.SpinnerCmd{Active: false} },
+	)
+}
+
+func downloadEpisode(url models.DownloadEpisode) tea.Cmd {
+	return tea.Batch(
+		func() tea.Msg { return models.SpinnerCmd{Active: true} },
+		func() tea.Msg { return models.MessageCmd{Msg: "Downloading Episode to download.mp3", Active: true} },
+		func() tea.Msg {
+			resp, err := http.Get(string(url))
+			if err != nil {
+				return nil
+			}
+			if resp.StatusCode != 200 {
+				return nil
+			}
+			file, err := os.Create("download.mp3")
+			defer file.Close()
+			writer := bufio.NewWriter(file)
+			if err != nil {
+				return nil
+			}
+			if len, err := writer.ReadFrom(resp.Body); len <= 0 || err != nil {
+				return nil
+			}
+			if err := writer.Flush(); err != nil {
+				return nil
+			}
+			return nil
+		},
 		func() tea.Msg { return models.SpinnerCmd{Active: false} },
 	)
 }

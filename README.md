@@ -20,13 +20,13 @@ A handy tui for listening to and managing podcasts. Implemented with [Bubbletea]
 - [X] Fix database syncing at startup
 - [X] Add episodes view for individual podcast
 - [X] Add ability to update podcasts
+- [ ] Add ability to download episodes
+- [ ] Add podcast player
+- [ ] Add ability to import/export OPML files
 - [ ] :vhs: Rerecord GIF for README
 - [ ] Expand help bar with unlisted controls
 - [ ] :bug: Fix filtering crash
 - [ ] Add ability to unsubscribe from podcasts
-- [ ] Add ability to download episodes
-- [ ] Add ability to import/export OPML files
-- [ ] Add podcast player
 - [ ] Add config file
 - [ ] Add image support
 - [ ] Support [gpodder API](https://github.com/thrillfall/nextcloud-gpodder) for syncing
