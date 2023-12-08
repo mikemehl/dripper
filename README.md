@@ -21,9 +21,9 @@ A handy tui for listening to and managing podcasts. Implemented with [Bubbletea]
 - [X] Add episodes view for individual podcast
 - [X] Add ability to update podcasts
 - [X] Add ability to download episodes
-- [ ] Download episodes to unique files
-- [ ] Make status messages visible
+- [X] Download episodes to unique files
 - [ ] Add podcast player
+- [ ] Make status messages visible
 - [ ] Add ability to import/export OPML files
 - [ ] :vhs: Rerecord GIF for README
 - [ ] Expand help bar with unlisted controls

@@ -239,13 +239,13 @@ func CmdWithSpinnerMessage(msg string, cmd tea.Cmd) tea.Cmd {
 	)
 }
 
-func downloadEpisode(url models.DownloadEpisode) tea.Cmd {
+func downloadEpisode(episode models.DownloadEpisode) tea.Cmd {
 	return tea.Batch(
 		func() tea.Msg { return models.SpinnerCmd{Active: true} },
 		func() tea.Msg { return models.MessageCmd{Msg: "Downloading Episode to download.mp3", Active: true} },
 		func() tea.Msg {
-			log.Debug("Downloading", "url", string(url))
-			resp, err := http.Get(string(url))
+			log.Debug("Downloading", "url", string(episode.Url))
+			resp, err := http.Get(string(episode.Url))
 			if err != nil {
 				log.Error("Download failed", "error", err)
 				return nil
@@ -255,7 +255,7 @@ func downloadEpisode(url models.DownloadEpisode) tea.Cmd {
 				return nil
 			}
 			log.Debug("Creating file")
-			file, err := os.Create("download.mp3")
+			file, err := os.Create(episode.Filename)
 			if err != nil {
 				log.Error("Create file failed", "error", err)
 				return nil
