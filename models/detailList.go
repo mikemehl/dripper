@@ -77,6 +77,10 @@ func (d DetailListItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { ret
 
 func extraKeys() []key.Binding {
 	return []key.Binding{
+		key.NewBinding(key.WithKeys("u"), key.WithDisabled()),
+		key.NewBinding(key.WithKeys("d"), key.WithDisabled()),
+		key.NewBinding(key.WithKeys("U"), key.WithDisabled()),
+		key.NewBinding(key.WithKeys("D"), key.WithDisabled()),
 		key.NewBinding(
 			key.WithKeys("H"),
 			key.WithDisabled(),
@@ -100,7 +104,7 @@ func extraKeys() []key.Binding {
 	}
 }
 
-func NewDetailList(items []list.Item, width int, height int, action DetailListAction) tea.Model {
+func NewDetailList(items []list.Item, width int, height int, action DetailListAction, extraActions ActionMap) tea.Model {
 	list := list.New(items, DetailListItemDelegate{}, width/2, height)
 	list.SetShowTitle(false)
 	list.SetFilteringEnabled(true)
@@ -112,6 +116,7 @@ func NewDetailList(items []list.Item, width int, height int, action DetailListAc
 		list:         list,
 		details:      details,
 		selectAction: action,
+		extraActions: extraActions,
 	}
 }
 
@@ -197,8 +202,11 @@ func (d DetailList) SelectedItem() list.Item {
 }
 
 func (d DetailList) checkExtraActions(msg tea.KeyMsg) tea.Cmd {
+	log.Debug("DetailList.checkExtraActions()", "msg", msg)
 	if action, ok := d.extraActions[msg.String()]; ok {
+		log.Debug("DetailList.checkExtraActions()", "action", action)
 		return action(d)
 	}
+	log.Debug("DetailList.checkExtraActions()", "no action")
 	return nil
 }

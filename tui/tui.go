@@ -64,8 +64,8 @@ func SelectPodcast(d models.DetailList) tea.Cmd {
 }
 
 func NewApp() tea.Model {
-	podcasts := models.NewDetailList([]list.Item{}, 40, 40, SelectPodcast)
-	episodes := models.NewDetailList([]list.Item{}, 40, 40, models.DefaultSelectAction)
+	podcasts := models.NewDetailList([]list.Item{}, 40, 40, SelectPodcast, models.ActionMap{})
+	episodes := models.NewDetailList([]list.Item{}, 40, 40, models.DefaultSelectAction, models.ActionMap{"d": models.DownloadEpisodeAction})
 	add := models.NewAdd()
 	return App{
 		menu: models.NewMenu([]models.MenuItem{
@@ -100,7 +100,8 @@ func (app App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		app.episodes, _ = app.UpdateEpisodes(msg)
 		return app, cmd
 	case models.DownloadEpisode:
-		downloadEpisode(msg)
+		log.Debug("DownloadEpisode", "msg", msg)
+		cmd = downloadEpisode(msg)
 	case models.FocusRemove:
 		if msg.Complete {
 			context := msg.Context
@@ -243,25 +244,33 @@ func downloadEpisode(url models.DownloadEpisode) tea.Cmd {
 		func() tea.Msg { return models.SpinnerCmd{Active: true} },
 		func() tea.Msg { return models.MessageCmd{Msg: "Downloading Episode to download.mp3", Active: true} },
 		func() tea.Msg {
+			log.Debug("Downloading", "url", string(url))
 			resp, err := http.Get(string(url))
 			if err != nil {
+				log.Error("Download failed", "error", err)
 				return nil
 			}
 			if resp.StatusCode != 200 {
+				log.Error("Download failed", "status", resp.StatusCode)
 				return nil
 			}
+			log.Debug("Creating file")
 			file, err := os.Create("download.mp3")
+			if err != nil {
+				log.Error("Create file failed", "error", err)
+				return nil
+			}
 			defer file.Close()
 			writer := bufio.NewWriter(file)
-			if err != nil {
-				return nil
-			}
 			if len, err := writer.ReadFrom(resp.Body); len <= 0 || err != nil {
+				log.Error("Read from body failed", "error", err)
 				return nil
 			}
 			if err := writer.Flush(); err != nil {
+				log.Error("Flush failed", "error", err)
 				return nil
 			}
+			log.Debug("Download complete")
 			return nil
 		},
 		func() tea.Msg { return models.SpinnerCmd{Active: false} },
