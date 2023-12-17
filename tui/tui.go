@@ -2,7 +2,6 @@ package tui
 
 import (
 	"bufio"
-	"net/http"
 	"os"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -244,16 +243,12 @@ func downloadEpisode(episode models.DownloadEpisode) tea.Cmd {
 		func() tea.Msg { return models.SpinnerCmd{Active: true} },
 		func() tea.Msg { return models.MessageCmd{Msg: "Downloading Episode to download.mp3", Active: true} },
 		func() tea.Msg {
-			log.Debug("Downloading", "url", string(episode.Url))
-			resp, err := http.Get(string(episode.Url))
+			audio, err := utils.GetAudio(episode.Url)
 			if err != nil {
-				log.Error("Download failed", "error", err)
+				log.Error("Error downloading audio", "error", err)
 				return nil
 			}
-			if resp.StatusCode != 200 {
-				log.Error("Download failed", "status", resp.StatusCode)
-				return nil
-			}
+
 			log.Debug("Creating file")
 			file, err := os.Create(episode.Filename)
 			if err != nil {
@@ -261,16 +256,18 @@ func downloadEpisode(episode models.DownloadEpisode) tea.Cmd {
 				return nil
 			}
 			defer file.Close()
+
 			writer := bufio.NewWriter(file)
-			if len, err := writer.ReadFrom(resp.Body); len <= 0 || err != nil {
+			if len, err := writer.ReadFrom(audio); len <= 0 || err != nil {
 				log.Error("Read from body failed", "error", err)
 				return nil
 			}
+
 			if err := writer.Flush(); err != nil {
 				log.Error("Flush failed", "error", err)
 				return nil
 			}
-			log.Debug("Download complete")
+
 			return nil
 		},
 		func() tea.Msg { return models.SpinnerCmd{Active: false} },

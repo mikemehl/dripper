@@ -6,7 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
 	"github.com/mikemehl/dripper/db"
-	"github.com/mikemehl/dripper/utils"
+	utils "github.com/mikemehl/dripper/utils"
 )
 
 type DownloadEpisode struct {
